@@ -74,7 +74,7 @@ public:
 
   void update() {
     drawGraph();
-    drawText(imu->getAcc());
+    // drawText(imu->getAcc()); // todo: figure out why this crashes?
     this->screenBuffer->pushSprite(0, 0);
   }
 };

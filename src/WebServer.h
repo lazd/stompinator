@@ -5,18 +5,22 @@
 
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include "RTCManager.h"
+#include "IMU.h"
 #include "HTML.h"
 
 #define SERVERPORT 80
 
 class WebServer {
 private:
+  IMU *imu;
+  RTCManager *rtc;
   bool ledState;
   AsyncWebServer *server;
   AsyncWebSocket *ws;
 
   void notifyClients() {
-    ws->textAll(String(ledState));
+    ws->textAll(String(imu->getAcc()));
   }
 
   void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
@@ -24,8 +28,8 @@ private:
     if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
       data[len] = 0;
       if (strcmp((char *)data, "toggle") == 0) {
-        ledState = !ledState;
-        notifyClients();
+        // ledState = !ledState;
+        // notifyClients();
       }
     }
   }
@@ -64,7 +68,10 @@ public:
     }
   }
 
-  void start() {
+  void start(IMU* imu, RTCManager *rtc) {
+    this->imu = imu;
+    this->rtc = rtc;
+
     server = new AsyncWebServer(80);
     ws = new AsyncWebSocket("/ws");
     Serial.printf("Server running on port %d and core %d\n", SERVERPORT, CONFIG_ASYNC_TCP_RUNNING_CORE);
@@ -82,6 +89,7 @@ public:
 
   void update() {
     ws->cleanupClients();
+    notifyClients();
   }
 };
 

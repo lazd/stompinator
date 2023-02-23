@@ -33,14 +33,14 @@ public:
     imu->start();
     ui->start(imu);
     logger->start(imu, rtc);
-    webServer->start();
+    webServer->start(imu, rtc);
   }
 
   void loop() {
     imu->update();
     rtc->update();
-    ui->update();
     logger->update();
+    ui->update();
     webServer->update();
   }
 };
