@@ -1,9 +1,13 @@
 #ifndef __server_h__
 #define __server_h__
 
+#define CONFIG_ASYNC_TCP_RUNNING_CORE 1
+
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include "HTML.h"
+
+#define SERVERPORT 80
 
 class WebServer {
 private:
@@ -63,6 +67,7 @@ public:
   void start() {
     server = new AsyncWebServer(80);
     ws = new AsyncWebSocket("/ws");
+    Serial.printf("Server running on port %d and core %d\n", SERVERPORT, CONFIG_ASYNC_TCP_RUNNING_CORE);
 
     initWebSocket();
 
