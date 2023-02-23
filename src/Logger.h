@@ -3,12 +3,10 @@
 
 #include <Arduino.h>
 
-#include "IMU.h"
 #include "RTCManager.h"
 
 class Logger {
 private:
-  IMU *imu;
   RTCManager *rtc;
   File logFile;
   bool loggingEnabled;
@@ -48,8 +46,7 @@ private:
   }
 
 public:
-  void start(IMU* imu, RTCManager *rtc) {
-    this->imu = imu;
+  void start(RTCManager *rtc) {
     this->rtc = rtc;
 
     this->loggingEnabled = false;
@@ -63,12 +60,14 @@ public:
     }
   }
 
-  void update() {
+  void update(float* data, int size) {
     if (this->loggingEnabled && this->logFile) {
       char timeString[TIMESTRINGLENGTH];
       this->rtc->getTimeString(timeString);
 
-      this->logFile.printf("%s,%5.10f\n", timeString, this->imu->getAcc());
+      for (int i = 0; i < size; i++) {
+        this->logFile.printf("%s,%5.10f\n", timeString, data[i]);
+      }
       this->logFile.flush(); // todo: don't flush every time
     }
   }

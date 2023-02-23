@@ -32,16 +32,14 @@ public:
     rtc->start();
     imu->start();
     ui->start();
-    logger->start(imu, rtc);
+    logger->start(rtc);
     webServer->start();
   }
 
   void loop() {
-    // imu->update();
     rtc->update();
-    logger->update();
 
-    // Get data from IMU and pass to UI and webserver
+    // Get data from IMU and pass to consumers
     int size = imu->size();
     float data[size];
     for (int i = 0; i < size; i++) {
@@ -49,6 +47,7 @@ public:
     }
     imu->clear();
 
+    logger->update(data, size);
     ui->update(data, size);
     webServer->update(data, size);
   }
