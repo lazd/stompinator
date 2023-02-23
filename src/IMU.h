@@ -10,6 +10,9 @@
 
 class IMU {
 private:
+  // Flat calibration values
+  float baseAccZ;
+
   // last raw acceleration values
   float accX;
   float accY;
@@ -22,9 +25,15 @@ private:
   SMA<5, float, float> accZAverage = {1};
   SMA<10, float, float> baseAccZAverage = {1};
 
-  // Flat calibration values
-  float baseAccZ;
-
+  static void update(void *param) {
+    IMU *imu = (IMU *)param;
+    while(true) {
+      // Pull IMU data and offset by calibration value
+      M5.IMU.getAccelData(&imu->accX, &imu->accY, &imu->accZ);
+      imu->accZBuffer.push(abs(1 - imu->accZAverage(abs(imu->accZ - imu->baseAccZ))) * INTENSITY_FACTOR);
+      vTaskDelay(5 / portTICK_PERIOD_MS);
+    }
+  }
 public:
   float getAcc() {
     return (1 - abs(accZ - baseAccZ)) * INTENSITY_FACTOR;
@@ -54,12 +63,9 @@ public:
       baseAccZ = baseAccZAverage(accZ) - 1;
       delay(10);
     }
-  }
 
-  void update() {
-    // Pull IMU data and offset by calibration value
-    M5.IMU.getAccelData(&accX, &accY, &accZ);
-    accZBuffer.push(abs(1 - accZAverage(abs(accZ - baseAccZ))) * INTENSITY_FACTOR);
+    TaskHandle_t imuUpdateTaskHandle;
+    xTaskCreatePinnedToCore(this->update, "IMU Update Task", 4096, this, 1, &imuUpdateTaskHandle, 1);
   }
 };
 

@@ -31,17 +31,26 @@ public:
     wifi->start();
     rtc->start();
     imu->start();
-    ui->start(imu);
+    ui->start();
     logger->start(imu, rtc);
-    webServer->start(imu, rtc);
+    webServer->start();
   }
 
   void loop() {
-    imu->update();
+    // imu->update();
     rtc->update();
     logger->update();
-    ui->update();
-    webServer->update();
+
+    // Get data from IMU and pass to UI and webserver
+    int size = imu->size();
+    float data[size];
+    for (int i = 0; i < size; i++) {
+      data[i] = imu->pop();
+    }
+    imu->clear();
+
+    ui->update(data, size);
+    webServer->update(data, size);
   }
 };
 

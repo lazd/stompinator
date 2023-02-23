@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 #include <M5Core2.h>
-#include "IMU.h"
 
 #define WIDTH 320
 #define HEIGHT 240
@@ -37,7 +36,6 @@ uint32_t interpolateColor(float n) {
 class UI {
 private:
   TFT_eSprite *screenBuffer;
-  IMU *imu;
 
   void drawLine(int x, float intensity, uint32_t color) {
     int height = min(intensity, 1.0f) * CENTER;
@@ -45,11 +43,11 @@ private:
     this->screenBuffer->drawFastVLine(x, lineStart, height * 2, color);
   }
 
-  void drawGraph() {
+  void drawGraph(float* data, int size) {
     int drawLocation = WIDTH - 1;
-    this->screenBuffer->scroll(imu->size() * -1);
-    while(!imu->isEmpty()) {
-      float dataPoint = imu->pop();
+    this->screenBuffer->scroll(size * -1);
+    for (int i = 0; i < size; i++) {
+      float dataPoint = data[i];
       drawLine(drawLocation, dataPoint, interpolateColor(dataPoint));
       drawLocation--;
     }
@@ -62,9 +60,7 @@ private:
   }
 
 public:
-  void start(IMU *imu) {
-    this->imu = imu;
-
+  void start() {
     // Buffer all screen update operations
     this->screenBuffer = new TFT_eSprite(&M5.Lcd);
     this->screenBuffer->createSprite(WIDTH, HEIGHT);
@@ -72,8 +68,8 @@ public:
     this->screenBuffer->setTextSize(TEXTSIZE);
   }
 
-  void update() {
-    drawGraph();
+  void update(float* data, int size) {
+    drawGraph(data, size);
     // drawText(imu->getAcc()); // todo: figure out why this crashes?
     this->screenBuffer->pushSprite(0, 0);
   }
