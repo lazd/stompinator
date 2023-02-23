@@ -40,10 +40,9 @@ private:
   IMU *imu;
 
   void drawLine(int x, float intensity, uint32_t color) {
-    int lineStart = CENTER - intensity * CENTER;
-    int lineEnd = CENTER + intensity * CENTER;
-    // todo: use fast v line
-    this->screenBuffer->drawLine(x, lineStart, x, lineEnd, color);
+    int height = min(intensity, 1.0f) * CENTER;
+    int lineStart = CENTER - height;
+    this->screenBuffer->drawFastVLine(x, lineStart, height * 2, color);
   }
 
   void drawGraph() {

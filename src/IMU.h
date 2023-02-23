@@ -59,7 +59,7 @@ public:
   void update() {
     // Pull IMU data and offset by calibration value
     M5.IMU.getAccelData(&accX, &accY, &accZ);
-    accZBuffer.push((1 - accZAverage(abs(accZ - baseAccZ))) * INTENSITY_FACTOR);
+    accZBuffer.push(abs(1 - accZAverage(abs(accZ - baseAccZ))) * INTENSITY_FACTOR);
   }
 };
 
