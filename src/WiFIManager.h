@@ -14,7 +14,8 @@ public:
       M5.Lcd.print(".");
       delay(500);
     }
-    M5.Lcd.println("\nConnected!");
+    M5.Lcd.printf("\nIP %s\n", WiFi.localIP().toString().c_str());
+    Serial.printf("IP %s\n", WiFi.localIP().toString().c_str());
   }
 };
 
