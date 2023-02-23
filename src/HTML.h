@@ -60,7 +60,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       onMessage(event) {
         this.dispatchEvent(new CustomEvent('data', {
           detail: {
-            data: event.data
+            data: event.data.split(',')
           }
         }));
       }
@@ -71,6 +71,8 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
 
     class UI {
+      COLOR_FACTOR = 3;
+
       constructor() {
         this.buffer = [];
         this.canvas = document.getElementById("canvas");
@@ -82,20 +84,38 @@ const char index_html[] PROGMEM = R"rawliteral(
         });
       }
 
+      interpolateColor(n) {
+        const nx = Math.max(Math.min(Math.abs(n) * this.COLOR_FACTOR, 1), 0);
+        let b = 0;
+        let g = 0;
+        let r = 0;
+        if (nx <= 0.5) {  // first, green stays at 100%, red raises to 100%
+          g = 1.0;
+          r = 2 * nx;
+        } else {  // red stays at 100%, green decays
+          r = 1.0;
+          g = 1.0 - 2 * (nx - 0.5);
+        }
+        r *= 255;
+        g *= 255;
+        b *= 255;
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+
       setCanvasSize() {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
       }
 
       drawLine(position, intensity) {
-        this.context.fillStyle = "green";
+        this.context.fillStyle = this.interpolateColor(intensity);
         this.context.fillRect(canvas.width - position, canvas.height / 2 - intensity * canvas.height, 2, intensity * canvas.height * 2);
       }
 
       update(data) {
-        this.text.innerHTML = data;
+        this.text.innerHTML = data[0];
+        this.buffer.unshift(...data);
         const intensity = Math.abs(data);
-        this.buffer.unshift(intensity);
 
         this.context.clearRect(0, 0, canvas.width, canvas.height);
         for (let i = canvas.width - 1; i >= 0; i--) {

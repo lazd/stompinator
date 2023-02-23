@@ -8,6 +8,7 @@
 #include "HTML.h"
 
 #define SERVERPORT 80
+#define DATAPRECISION 6
 
 class WebServer {
 private:
@@ -16,7 +17,11 @@ private:
   AsyncWebSocket *ws;
 
   void notifyClients(float* data, int size) {
-    ws->textAll(String(data[0]));
+    String dataString = String(data[0], DATAPRECISION);
+    for (int i = 1; i < size; i++) {
+      dataString = String(dataString + "," + String(data[i], DATAPRECISION));
+    }
+    ws->textAll(dataString);
   }
 
   void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {

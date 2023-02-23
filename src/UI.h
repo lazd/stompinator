@@ -12,7 +12,6 @@
 #define CENTER HEIGHT / 2
 #define TEXT_WIDTH 85
 #define TEXT_HEIGHT 21
-#define DRAW_INTERVAL 41.66666
 #define COLOR_FACTOR 3
 
 uint32_t interpolateColor(float n) {
