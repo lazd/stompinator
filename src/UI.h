@@ -67,7 +67,7 @@ public:
 
   void update(float* data, int size) {
     drawGraph(data, size);
-    // drawText(imu->getAcc()); // todo: figure out why this crashes?
+    // drawText(data[size - 1]); // todo: figure out why this crashes?
     this->screenBuffer->pushSprite(0, 0);
   }
 };

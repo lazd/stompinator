@@ -98,8 +98,11 @@ public:
         sessionFile.println(rtc->getDateTimeString());
         sessionFile.close();
       } else {
-        Serial.println("Failed to session file");
+        Serial.println("Failed to open session file");
       }
+    }
+    else {
+      M5.Lcd.println("Watcher logging disabled");
     }
   }
 
@@ -156,9 +159,9 @@ public:
       Serial.printf("Event lasted %d seconds\n", (millis() - this->eventStartTime) / 1000);
       Serial.printf("Max intensity was %f\n", this->eventMaxIntensity);
       this->logStats();
-      this->activeEvent = false;
       this->closeLogFile();
       this->sleep();
+      this->activeEvent = false;
     }
   }
 };

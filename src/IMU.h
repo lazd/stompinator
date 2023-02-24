@@ -11,16 +11,16 @@ class IMU {
 private:
   bool running;
 
-  // Flat calibration values
+  // Flat calibration value
   float baseAccZ;
 
-  // last raw acceleration values
+  // Raw acceleration values
   float accX;
   float accY;
   float accZ;
 
   // Buffer of the last readings
-  CircularBuffer<float, IMUBUFFERSIZE> accZBuffer;
+  CircularBuffer<float, IMUBUFFERSIZE> intensityBuffer;
 
   // Moving average to smooth readings
   SMA<SMASIZE, float, float> accZAverage = {1};
@@ -33,26 +33,26 @@ private:
       if (imu->running) {
         // Pull IMU data and offset by calibration value
         M5.IMU.getAccelData(&imu->accX, &imu->accY, &imu->accZ);
-        imu->accZBuffer.push(abs(1 - imu->accZAverage(abs(imu->accZ - imu->baseAccZ))) * SENSITIVITY);
+        imu->intensityBuffer.push(abs(1 - imu->accZAverage(abs(imu->accZ - imu->baseAccZ))) * SENSITIVITY);
       }
       vTaskDelay(TICKTIME / portTICK_PERIOD_MS);
     }
   }
 public:
-  float getAcc() {
-    return (1 - abs(accZ - baseAccZ)) * SENSITIVITY;
+  float last() {
+    return intensityBuffer.last();
   }
 
   int size() {
-    return accZBuffer.size();
+    return intensityBuffer.size();
   }
 
   float pop() {
-    return accZBuffer.pop();
+    return intensityBuffer.pop();
   }
 
   void clear() {
-    accZBuffer.clear();
+    intensityBuffer.clear();
   }
 
   void pause() {
@@ -64,7 +64,7 @@ public:
   }
 
   boolean isEmpty() {
-    return accZBuffer.isEmpty();
+    return intensityBuffer.isEmpty();
   }
 
   void start() {

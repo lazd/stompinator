@@ -50,9 +50,10 @@ public:
     this->loggingEnabled = false;
 
     if (SD.begin()) {
-      M5.Lcd.println("SD card mounted");
       this->loggingEnabled = true;
       this->openLogFile();
+    } else {
+      M5.Lcd.println("Raw logging disabled");
     }
   }
 
