@@ -69,7 +69,12 @@ public:
 
   void start() {
     // Init IMU and store calibration values
-    M5.IMU.Init();
+    if (M5.IMU.Init() != 0) {
+      M5.Lcd.println("IMU Check failed");
+      Serial.println("IMU Check failed");
+      return;
+    }
+
     for (int i = 0; i < CALIBRATIONSMASIZE; i++) {
       delay(TICKTIME);
       M5.IMU.getAccelData(&accX, &accY, &accZ);
