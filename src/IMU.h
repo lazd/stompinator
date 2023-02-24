@@ -10,6 +10,8 @@
 
 class IMU {
 private:
+  bool running;
+
   // Flat calibration values
   float baseAccZ;
 
@@ -27,10 +29,13 @@ private:
 
   static void update(void *param) {
     IMU *imu = (IMU *)param;
+    imu->running = true;
     while(true) {
-      // Pull IMU data and offset by calibration value
-      M5.IMU.getAccelData(&imu->accX, &imu->accY, &imu->accZ);
-      imu->accZBuffer.push(abs(1 - imu->accZAverage(abs(imu->accZ - imu->baseAccZ))) * INTENSITY_FACTOR);
+      if (imu->running) {
+        // Pull IMU data and offset by calibration value
+        M5.IMU.getAccelData(&imu->accX, &imu->accY, &imu->accZ);
+        imu->accZBuffer.push(abs(1 - imu->accZAverage(abs(imu->accZ - imu->baseAccZ))) * INTENSITY_FACTOR);
+      }
       vTaskDelay(5 / portTICK_PERIOD_MS);
     }
   }
@@ -49,6 +54,14 @@ public:
 
   void clear() {
     accZBuffer.clear();
+  }
+
+  void pause() {
+    running = false;
+  }
+
+  void resume() {
+    running = true;
   }
 
   boolean isEmpty() {
