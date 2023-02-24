@@ -40,12 +40,14 @@ public:
     rtc->update();
 
     // Get data from IMU and pass to consumers
+    imu->pause();
     int size = imu->size();
     float data[size];
-    for (int i = 0; i < size; i++) {
+    for (int i = size - 1; i >= 0; i--) {
       data[i] = imu->pop();
     }
     imu->clear();
+    imu->resume();
 
     logger->update(data, size);
     ui->update(data, size);

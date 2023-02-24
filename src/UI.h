@@ -43,12 +43,12 @@ private:
   }
 
   void drawGraph(float* data, int size) {
-    int drawLocation = WIDTH - 1;
+    int drawLocation = WIDTH - size;
     this->screenBuffer->scroll(size * -1);
     for (int i = 0; i < size; i++) {
       float dataPoint = data[i];
       drawLine(drawLocation, dataPoint, interpolateColor(dataPoint));
-      drawLocation--;
+      drawLocation++;
     }
   }
 
