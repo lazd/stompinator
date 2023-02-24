@@ -24,10 +24,10 @@ private:
         this->logFile.close();
       }
 
-      char dateString[DATESTRINGLENGTH];
+      char dateString[DATESTRINGLENGTH + 1];
       rtc->getDateString(dateString);
-      char fileName[DATETIMESTRINGLENGTH];
-      sprintf(fileName, "/log-%s.txt", dateString);
+      char fileName[DATESTRINGLENGTH + 1 + 9];
+      sprintf(fileName, "/log-%s.csv", dateString);
 
       this->logFile = SD.open(fileName, FILE_APPEND);
       if (this->logFile) {
@@ -62,7 +62,7 @@ public:
 
   void update(float* data, int size) {
     if (this->loggingEnabled && this->logFile) {
-      char timeString[TIMESTRINGLENGTH];
+      char timeString[TIMESTRINGLENGTH + 1];
       this->rtc->getTimeString(timeString);
 
       for (int i = 0; i < size; i++) {
