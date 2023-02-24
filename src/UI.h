@@ -4,18 +4,16 @@
 #include <Arduino.h>
 #include <M5Core2.h>
 
+#include "Constants.h"
+
 #define WIDTH 320
 #define HEIGHT 240
-#define TEXTSIZE 2
-#define TEXTCOLOR GREEN
-#define TEXTBACKGROUND BLACK
 #define CENTER HEIGHT / 2
 #define TEXT_WIDTH 85
 #define TEXT_HEIGHT 21
-#define COLOR_FACTOR 3
 
 uint32_t interpolateColor(float n) {
-  float nx = constrain(abs(n) * COLOR_FACTOR, 0, 1);
+  float nx = constrain(abs(n) * COLORMULTIPLIER, 0, 1);
   float b = 0;
   float g = 0;
   float r = 0;
@@ -34,7 +32,7 @@ uint32_t interpolateColor(float n) {
 
 class UI {
 private:
-  TFT_eSprite *screenBuffer;
+  TFT_eSprite* screenBuffer;
 
   void drawLine(int x, float intensity, uint32_t color) {
     int height = min(intensity, 1.0f) * CENTER;

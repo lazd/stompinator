@@ -1,21 +1,23 @@
 #ifndef __application_h__
 #define __application_h__
 
-#include "IMU.h"
-#include "UI.h"
-// #include "WebServer.h"
 #include "WiFiManager.h"
 #include "RTCManager.h"
-#include "Logger.h"
+#include "IMU.h"
+#include "UI.h"
+#include "Watcher.h"
+// #include "WebServer.h"
+// #include "Logger.h"
 
 class Application {
 private:
   // WebServer *webServer;
+  Watcher *watcher;
   WiFiManager *wifi;
   RTCManager *rtc;
   IMU *imu;
   UI *ui;
-  Logger *logger;
+  // Logger *logger;
 
 public:
   Application() {
@@ -23,7 +25,8 @@ public:
     rtc = new RTCManager();
     imu = new IMU();
     ui = new UI();
-    logger = new Logger();
+    watcher = new Watcher();
+    // logger = new Logger();
     // webServer = new WebServer();
   }
 
@@ -32,7 +35,8 @@ public:
     rtc->start();
     imu->start();
     ui->start();
-    logger->start(rtc);
+    watcher->start(rtc);
+    // logger->start(rtc);
     // webServer->start();
   }
 
@@ -49,8 +53,9 @@ public:
     imu->clear();
     imu->resume();
 
-    logger->update(data, size);
     ui->update(data, size);
+    watcher->update(data, size);
+    // logger->update(data, size);
     // webServer->update(data, size);
   }
 };

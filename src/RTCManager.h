@@ -2,11 +2,11 @@
 #define __rtc_h__
 
 #include <M5Core2.h>
+
+#include "Constants.h"
 #include "time.h"
 
 #define NTPSERVER "pool.ntp.org"
-#define UTCOFFSETINSECONDS 8 * -3600
-#define DAYLIGHTOFFSETINSECONDS 3600
 #define DATESTRINGLENGTH 10
 #define DATETIMESTRINGLENGTH 19
 #define TIMESTRINGLENGTH 8
@@ -15,6 +15,11 @@ class RTCManager {
 private:
   RTC_DateTypeDef dateStruct;
   RTC_TimeTypeDef timeStruct;
+
+  char dateString[DATESTRINGLENGTH + 1];
+  char timeString[TIMESTRINGLENGTH + 1];
+  char dateTimeString[DATETIMESTRINGLENGTH + 1];
+  char underscoreTimeString[TIMESTRINGLENGTH + 1];
 
   bool getTimeFromServer() {
     configTime(UTCOFFSETINSECONDS, DAYLIGHTOFFSETINSECONDS, NTPSERVER);
@@ -52,16 +57,20 @@ public:
     return dateStruct.Year == year && dateStruct.Month == month && dateStruct.Date == date;
   }
 
-  void getDateString(char* dateString) {
-    sprintf(dateString, "%02d-%02d-%02d", dateStruct.Year, dateStruct.Month, dateStruct.Date);
+  char* getDateString() {
+    return dateString;
   }
 
-  void getTimeString(char* dateString) {
-    sprintf(dateString, "%02d:%02d:%02d", timeStruct.Hours, timeStruct.Minutes, timeStruct.Seconds);
+  char* getTimeString() {
+    return timeString;
   }
 
-  void getDateTimeString(char* dateTimeString) {
-    sprintf(dateTimeString, "%02d-%02d-%02d %02d:%02d:%02d", dateStruct.Year, dateStruct.Month, dateStruct.Date, timeStruct.Hours, timeStruct.Minutes, timeStruct.Seconds);
+  char* getUnderscoreTimeString() {
+    return underscoreTimeString;
+  }
+
+  char* getDateTimeString() {
+    return dateTimeString;
   }
 
   void start() {
@@ -80,6 +89,11 @@ public:
   void update() {
     M5.Rtc.GetDate(&dateStruct);
     M5.Rtc.GetTime(&timeStruct);
+
+    sprintf(this->dateString, "%02d-%02d-%02d", dateStruct.Year, dateStruct.Month, dateStruct.Date);
+    sprintf(this->timeString, "%02d:%02d:%02d", timeStruct.Hours, timeStruct.Minutes, timeStruct.Seconds);
+    sprintf(this->underscoreTimeString, "%02d_%02d_%02d", timeStruct.Hours, timeStruct.Minutes, timeStruct.Seconds);
+    sprintf(this->dateTimeString, "%s %s", this->dateString, this->timeString);
   }
 };
 

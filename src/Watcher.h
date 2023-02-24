@@ -1,0 +1,166 @@
+#ifndef __watcher_h__
+#define __watcher_h__
+
+#include <Arduino.h>
+#include <CircularBuffer.h>
+
+#include "RTCManager.h"
+
+#define FLUSHTIME 5000
+
+class Watcher {
+private:
+  RTCManager *rtc;
+
+  File logFile;
+  bool didInitialSleep;
+  bool displaySleeping;
+  bool loggingEnabled;
+  bool activeEvent;
+  float eventMaxIntensity;
+  unsigned long eventStartTime;
+  unsigned long lastFlushTime;
+  unsigned long lastSignificantEvent;
+
+  // About 1 second
+  CircularBuffer<float, REWINDSTEPS> buffer;
+
+  void openLogFile() {
+    if (this->loggingEnabled) {
+      char fileName[DATESTRINGLENGTH + TIMESTRINGLENGTH + 1 + 12];
+      sprintf(fileName, "/event-%s-%s.csv", rtc->getDateString(), rtc->getUnderscoreTimeString());
+
+      this->logFile = SD.open(fileName, FILE_WRITE);
+      if (!this->logFile) {
+        Serial.println("Failed to open event file");
+      }
+    }
+  }
+
+  void closeLogFile() {
+    if (this->logFile) {
+      this->logFile.close();
+    }
+  }
+
+  void logData(float data) {
+    if (this->logFile) {
+      this->logFile.printf("%s,%5.10f\n", this->rtc->getTimeString(), data);
+    }
+  }
+
+  void logStats() {
+    if (this->logFile) {
+      this->logFile.printf("max,%5.10f\n", this->eventMaxIntensity);
+      this->logFile.printf("duration,%d\n", (millis() - this->eventStartTime) / 1000);
+    }
+  }
+
+  void flush() {
+    if (this->logFile) {
+      this->logFile.flush();
+      this->lastFlushTime = millis();
+    }
+  }
+
+  bool isSleeping() {
+    return this->displaySleeping;
+  }
+
+  void sleep() {
+    M5.Lcd.sleep();
+    M5.Axp.SetLcdVoltage(SCREENOFFBRIGHTNESS);
+    this->displaySleeping = true;
+  }
+
+  void wake() {
+    M5.Lcd.wakeup();
+    M5.Axp.SetLcdVoltage(SCREENONBRIGHTNESS);
+    this->displaySleeping = false;
+  }
+
+public:
+  void start(RTCManager *rtc) {
+    this->activeEvent = false;
+    this->rtc = rtc;
+    this->loggingEnabled = false;
+    this->displaySleeping = false;
+    this->didInitialSleep = false;
+
+    // Set initial brightness
+    this->wake();
+
+    if (SD.begin()) {
+      this->loggingEnabled = true;
+
+      File sessionFile = SD.open("/sessions.csv", FILE_APPEND);
+      if (sessionFile) {
+        sessionFile.println(rtc->getDateTimeString());
+        sessionFile.close();
+      } else {
+        Serial.println("Failed to session file");
+      }
+    }
+  }
+
+  void update(float *data, int size) {
+    for (int i = 0; i < size; i++) {
+      if (data[i] > WATCHTHRESHOLD) {
+        if (!this->activeEvent) {
+          this->wake();
+
+          Serial.printf("Event detected with intensity %f\n", data[i]);
+          this->eventStartTime = this->lastSignificantEvent = this->lastFlushTime = millis();
+          this->eventMaxIntensity = data[i];
+          this->activeEvent = true;
+          this->openLogFile();
+
+          // Pop the last REWINDSTEPS samples and include them in the log
+          float rewindBuffer[REWINDSTEPS];
+          int rewindRealSize = 0;
+          for (int j = REWINDSTEPS - 1; j >= 0 && !buffer.isEmpty(); j--) {
+            rewindBuffer[j] = buffer.pop();
+            rewindRealSize++;
+          }
+
+          // Note: the first REWINDSTEPS samples will have an incorrect timestamp, whatever
+          for (int j = 0; j < rewindRealSize; j++) {
+            this->logData(rewindBuffer[j]);
+          }
+
+          buffer.clear();
+        } else {
+          this->lastSignificantEvent = millis();
+        }
+      }
+
+      if (this->activeEvent) {
+        this->logData(data[i]);
+        if (data[i] > this->eventMaxIntensity) {
+          this->eventMaxIntensity = data[i];
+        }
+        if (millis() - this->lastFlushTime >= FLUSHTIME) {
+          this->flush();
+        }
+      } else {
+        buffer.push(data[i]);
+      }
+    }
+
+    if (!this->didInitialSleep && !this->activeEvent && !this->displaySleeping && millis() > INITIALWAKETIME) {
+      this->sleep();
+      this->didInitialSleep = true;
+    }
+
+    if (this->activeEvent && millis() - this->lastSignificantEvent > EVENTTIMEOUT) {
+      Serial.printf("Event lasted %d seconds\n", (millis() - this->eventStartTime) / 1000);
+      Serial.printf("Max intensity was %f\n", this->eventMaxIntensity);
+      this->logStats();
+      this->activeEvent = false;
+      this->closeLogFile();
+      this->sleep();
+    }
+  }
+};
+
+#endif

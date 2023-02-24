@@ -5,8 +5,7 @@
 #include <M5Core2.h>
 
 #include <Filters/SMA.hpp>
-
-#define INTENSITY_FACTOR 6
+#include "Constants.h"
 
 class IMU {
 private:
@@ -34,14 +33,14 @@ private:
       if (imu->running) {
         // Pull IMU data and offset by calibration value
         M5.IMU.getAccelData(&imu->accX, &imu->accY, &imu->accZ);
-        imu->accZBuffer.push(abs(1 - imu->accZAverage(abs(imu->accZ - imu->baseAccZ))) * INTENSITY_FACTOR);
+        imu->accZBuffer.push(abs(1 - imu->accZAverage(abs(imu->accZ - imu->baseAccZ))) * SENSITIVITY);
       }
-      vTaskDelay(5 / portTICK_PERIOD_MS);
+      vTaskDelay(TICKTIME / portTICK_PERIOD_MS);
     }
   }
 public:
   float getAcc() {
-    return (1 - abs(accZ - baseAccZ)) * INTENSITY_FACTOR;
+    return (1 - abs(accZ - baseAccZ)) * SENSITIVITY;
   }
 
   int size() {
@@ -74,7 +73,7 @@ public:
     for (int i = 0; i < 10; i++) {
       M5.IMU.getAccelData(&accX, &accY, &accZ);
       baseAccZ = baseAccZAverage(accZ) - 1;
-      delay(10);
+      delay(TICKTIME);
     }
 
     TaskHandle_t imuUpdateTaskHandle;

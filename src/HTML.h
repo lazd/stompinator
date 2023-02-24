@@ -71,7 +71,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
 
     class UI {
-      COLOR_FACTOR = 3;
+      COLORMULTIPLIER = 3;
 
       constructor() {
         this.buffer = [];
@@ -85,7 +85,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       }
 
       interpolateColor(n) {
-        const nx = Math.max(Math.min(Math.abs(n) * this.COLOR_FACTOR, 1), 0);
+        const nx = Math.max(Math.min(Math.abs(n) * this.COLORMULTIPLIER, 1), 0);
         let b = 0;
         let g = 0;
         let r = 0;
