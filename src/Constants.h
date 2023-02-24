@@ -6,6 +6,9 @@
 /* IMU */
 #define SENSITIVITY 6
 #define TICKTIME 5 // 200Hz
+#define IMUBUFFERSIZE 32
+#define SMASIZE 5
+#define CALIBRATIONSMASIZE 10
 
 /* RTC */
 #define UTCOFFSETINSECONDS 8 * -3600

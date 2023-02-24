@@ -17,6 +17,8 @@ private:
   RTCManager *rtc;
   IMU *imu;
   UI *ui;
+  float data[IMUBUFFERSIZE];
+  unsigned int size;
   // Logger *logger;
 
 public:
@@ -45,16 +47,15 @@ public:
 
     // Get data from IMU and pass to consumers
     imu->pause();
-    int size = imu->size();
-    float data[size];
+    this->size = imu->size();
     for (int i = size - 1; i >= 0; i--) {
-      data[i] = imu->pop();
+      this->data[i] = imu->pop();
     }
     imu->clear();
     imu->resume();
 
-    ui->update(data, size);
-    watcher->update(data, size);
+    ui->update(this->data, this->size);
+    watcher->update(this->data, this->size);
     // logger->update(data, size);
     // webServer->update(data, size);
   }

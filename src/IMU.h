@@ -20,11 +20,11 @@ private:
   float accZ;
 
   // Buffer of the last readings
-  CircularBuffer<float, 32> accZBuffer;
+  CircularBuffer<float, IMUBUFFERSIZE> accZBuffer;
 
   // Moving average to smooth readings
-  SMA<5, float, float> accZAverage = {1};
-  SMA<10, float, float> baseAccZAverage = {1};
+  SMA<SMASIZE, float, float> accZAverage = {1};
+  SMA<CALIBRATIONSMASIZE, float, float> baseAccZAverage = {1};
 
   static void update(void *param) {
     IMU *imu = (IMU *)param;
@@ -70,10 +70,10 @@ public:
   void start() {
     // Init IMU and store calibration values
     M5.IMU.Init();
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < CALIBRATIONSMASIZE; i++) {
+      delay(TICKTIME);
       M5.IMU.getAccelData(&accX, &accY, &accZ);
       baseAccZ = baseAccZAverage(accZ) - 1;
-      delay(TICKTIME);
     }
 
     TaskHandle_t imuUpdateTaskHandle;
