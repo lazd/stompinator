@@ -3,14 +3,14 @@
 
 #include "IMU.h"
 #include "UI.h"
-#include "WebServer.h"
+// #include "WebServer.h"
 #include "WiFiManager.h"
 #include "RTCManager.h"
 #include "Logger.h"
 
 class Application {
 private:
-  WebServer *webServer;
+  // WebServer *webServer;
   WiFiManager *wifi;
   RTCManager *rtc;
   IMU *imu;
@@ -24,7 +24,7 @@ public:
     imu = new IMU();
     ui = new UI();
     logger = new Logger();
-    webServer = new WebServer();
+    // webServer = new WebServer();
   }
 
   void start() {
@@ -33,7 +33,7 @@ public:
     imu->start();
     ui->start();
     logger->start(rtc);
-    webServer->start();
+    // webServer->start();
   }
 
   void loop() {
@@ -49,7 +49,7 @@ public:
 
     logger->update(data, size);
     ui->update(data, size);
-    webServer->update(data, size);
+    // webServer->update(data, size);
   }
 };
 
