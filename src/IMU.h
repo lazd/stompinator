@@ -82,7 +82,7 @@ public:
     }
 
     TaskHandle_t imuUpdateTaskHandle;
-    xTaskCreatePinnedToCore(this->update, "IMU Update Task", 4096, this, 1, &imuUpdateTaskHandle, 1);
+    xTaskCreatePinnedToCore(this->update, "IMU Update Task", 4096, this, 1, &imuUpdateTaskHandle, 0);
   }
 };
 
