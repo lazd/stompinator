@@ -120,14 +120,14 @@ public:
 
           // Pop the last REWINDSTEPS samples and include them in the log
           float rewindBuffer[REWINDSTEPS];
-          int rewindRealSize = 0;
+          int rewindBufferStartIndex = REWINDSTEPS; // start here in case there is no data
           for (int j = REWINDSTEPS - 1; j >= 0 && !buffer.isEmpty(); j--) {
             rewindBuffer[j] = buffer.pop();
-            rewindRealSize++;
+            rewindBufferStartIndex = j;
           }
 
           // Note: the first REWINDSTEPS samples will have an incorrect timestamp, whatever
-          for (int j = 0; j < rewindRealSize; j++) {
+          for (int j = rewindBufferStartIndex; j < REWINDSTEPS; j++) {
             this->logData(rewindBuffer[j]);
           }
 
