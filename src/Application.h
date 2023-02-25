@@ -1,25 +1,30 @@
 #ifndef __application_h__
 #define __application_h__
 
-#include "WiFiManager.h"
-#include "RTCManager.h"
 #include "IMU.h"
+#include "RTCManager.h"
 #include "UI.h"
 #include "Watcher.h"
-// #include "WebServer.h"
+#include "WiFiManager.h"
 // #include "Logger.h"
+// #include "WebServer.h"
 
 class Application {
 private:
+  // Logger *logger;
   // WebServer *webServer;
   Watcher *watcher;
   WiFiManager *wifi;
   RTCManager *rtc;
   IMU *imu;
   UI *ui;
+
+  // Store data to be passed to consumers
+  unsigned int dataSize;
   float data[IMUBUFFERSIZE];
-  unsigned int size;
-  // Logger *logger;
+
+  // Store data to be recieved from IMU
+  QueueHandle_t dataQueue;
 
 public:
   Application() {
@@ -33,9 +38,11 @@ public:
   }
 
   void start() {
+    dataQueue = xQueueCreate(IMUBUFFERSIZE, sizeof(float));
+
     wifi->start();
     rtc->start();
-    imu->start();
+    imu->start(dataQueue);
     ui->start();
     watcher->start(rtc);
     // logger->start(rtc);
@@ -46,18 +53,16 @@ public:
     rtc->update();
 
     // Get data from IMU and pass to consumers
-    imu->pause();
-    this->size = imu->size();
-    for (int i = size - 1; i >= 0; i--) {
-      this->data[i] = imu->pop();
+    float intensity;
+    this->dataSize = 0;
+    while (xQueueReceive(dataQueue, &intensity, 0)) {
+      this->data[this->dataSize++] = intensity;
     }
-    imu->clear();
-    imu->resume();
 
-    ui->update(this->data, this->size);
-    watcher->update(this->data, this->size);
-    // logger->update(data, size);
-    // webServer->update(data, size);
+    ui->update(this->data, this->dataSize);
+    watcher->update(this->data, this->dataSize);
+    // logger->update(this->data, this->dataSize);
+    // webServer->update(this->data, this->dataSize);
   }
 };
 

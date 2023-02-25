@@ -100,8 +100,7 @@ public:
       } else {
         Serial.println("Failed to open session file");
       }
-    }
-    else {
+    } else {
       M5.Lcd.println("Watcher logging disabled");
     }
   }
@@ -120,7 +119,7 @@ public:
 
           // Pop the last REWINDSTEPS samples and include them in the log
           float rewindBuffer[REWINDSTEPS];
-          int rewindBufferStartIndex = REWINDSTEPS; // start here in case there is no data
+          int rewindBufferStartIndex = REWINDSTEPS;  // start here in case there is no data
           for (int j = REWINDSTEPS - 1; j >= 0 && !buffer.isEmpty(); j--) {
             rewindBuffer[j] = buffer.pop();
             rewindBufferStartIndex = j;

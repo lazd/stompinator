@@ -1,23 +1,18 @@
 #ifndef __imu_h__
 #define __imu_h__
 
-#include <CircularBuffer.h>
 #include <M5Core2.h>
 
 #include <Filters/SMA.hpp>
+
 #include "Constants.h"
 
 class IMU {
 private:
-  bool running;
-
-  // Raw acceleration values
-  // Buffer of the last readings
-  CircularBuffer<float, IMUBUFFERSIZE> intensityBuffer;
+  QueueHandle_t dataQueue;
 
   static void update(void *param) {
     IMU *imu = (IMU *)param;
-    imu->running = true;
 
     // Store raw read values
     float accX;
@@ -36,45 +31,19 @@ private:
       baseAccZ = baseAccZAverage(accZ) - 1;
     }
 
-    while(true) {
-      if (imu->running) {
-        // Pull IMU data and offset by calibration value
-        M5.IMU.getAccelData(&accX, &accY, &accZ);
-        imu->intensityBuffer.push(abs(1 - accZAverage(abs(accZ - baseAccZ))) * SENSITIVITY);
-      }
+    while (true) {
+      // Pull IMU data and offset by calibration value
+      M5.IMU.getAccelData(&accX, &accY, &accZ);
+      float intensity = abs(1 - accZAverage(abs(accZ - baseAccZ))) * SENSITIVITY;
+      xQueueSend(imu->dataQueue, &intensity, portMAX_DELAY);
       vTaskDelay(TICKTIME / portTICK_PERIOD_MS);
     }
   }
+
 public:
-  float last() {
-    return intensityBuffer.last();
-  }
+  void start(QueueHandle_t dataQueue) {
+    this->dataQueue = dataQueue;
 
-  int size() {
-    return intensityBuffer.size();
-  }
-
-  float pop() {
-    return intensityBuffer.pop();
-  }
-
-  void clear() {
-    intensityBuffer.clear();
-  }
-
-  void pause() {
-    running = false;
-  }
-
-  void resume() {
-    running = true;
-  }
-
-  boolean isEmpty() {
-    return intensityBuffer.isEmpty();
-  }
-
-  void start() {
     // Init IMU and store calibration values
     if (M5.IMU.Init() != 0) {
       M5.Lcd.println("IMU Check failed");
@@ -83,7 +52,7 @@ public:
     }
 
     TaskHandle_t imuUpdateTaskHandle;
-    xTaskCreatePinnedToCore(this->update, "IMU Update Task", 4096, this, 1, &imuUpdateTaskHandle, 0);
+    xTaskCreatePinnedToCore(this->update, "IMU Update Task", 4096, this, 1, &imuUpdateTaskHandle, 1);
   }
 };
 
