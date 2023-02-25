@@ -35,7 +35,7 @@ private:
       // Pull IMU data and offset by calibration value
       M5.IMU.getAccelData(&accX, &accY, &accZ);
       float intensity = abs(1 - accZAverage(abs(accZ - baseAccZ))) * SENSITIVITY;
-      xQueueSend(imu->dataQueue, &intensity, portMAX_DELAY);
+      xQueueSend(imu->dataQueue, &intensity, 0);
       vTaskDelay(TICKTIME / portTICK_PERIOD_MS);
     }
   }
@@ -52,7 +52,7 @@ public:
     }
 
     TaskHandle_t imuUpdateTaskHandle;
-    xTaskCreatePinnedToCore(this->update, "IMU Update Task", 4096, this, 1, &imuUpdateTaskHandle, 1);
+    xTaskCreatePinnedToCore(this->update, "IMU Update Task", 8192, this, 1, &imuUpdateTaskHandle, 1);
   }
 };
 
