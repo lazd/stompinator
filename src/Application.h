@@ -28,29 +28,29 @@ private:
 
 public:
   Application() {
-    wifi = new WiFiManager();
-    rtc = new RTCManager();
-    imu = new IMU();
-    ui = new UI();
-    watcher = new Watcher();
-    // logger = new Logger();
-    // webServer = new WebServer();
+    this->wifi = new WiFiManager();
+    this->rtc = new RTCManager();
+    this->imu = new IMU();
+    this->ui = new UI();
+    this->watcher = new Watcher();
+    // this->logger = new Logger();
+    // this->webServer = new WebServer();
   }
 
   void start() {
-    dataQueue = xQueueCreate(IMUBUFFERSIZE, sizeof(float));
+    this->dataQueue = xQueueCreate(IMUBUFFERSIZE, sizeof(float));
 
-    wifi->start();
-    rtc->start();
-    imu->start(dataQueue);
-    ui->start();
-    watcher->start(rtc);
-    // logger->start(rtc);
-    // webServer->start();
+    this->wifi->start();
+    this->rtc->start();
+    this->imu->start(this->dataQueue);
+    this->ui->start();
+    this->watcher->start(rtc);
+    // this->logger->start(this->rtc);
+    // this->webServer->start();
   }
 
   void loop() {
-    rtc->update();
+    this->rtc->update();
 
     // Get data from IMU and pass to consumers
     float intensity;
@@ -59,8 +59,8 @@ public:
       this->data[this->dataSize++] = intensity;
     }
 
-    ui->update(this->data, this->dataSize);
-    watcher->update(this->data, this->dataSize);
+    this->ui->update(this->data, this->dataSize);
+    this->watcher->update(this->data, this->dataSize);
     // logger->update(this->data, this->dataSize);
     // webServer->update(this->data, this->dataSize);
   }
