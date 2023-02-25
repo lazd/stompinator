@@ -84,6 +84,9 @@ public:
       delay(500);
     } while (!timeFetchedSuccessfully && timeFetchTries < 5);
     M5.Lcd.print("\n");
+    this->update();
+    M5.Lcd.println(dateTimeString);
+    Serial.println(dateTimeString);
   }
 
   void update() {
