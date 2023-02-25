@@ -11,29 +11,36 @@ class IMU {
 private:
   bool running;
 
-  // Flat calibration value
-  float baseAccZ;
-
   // Raw acceleration values
-  float accX;
-  float accY;
-  float accZ;
-
   // Buffer of the last readings
   CircularBuffer<float, IMUBUFFERSIZE> intensityBuffer;
-
-  // Moving average to smooth readings
-  SMA<SMASIZE, float, float> accZAverage = {1};
-  SMA<CALIBRATIONSMASIZE, float, float> baseAccZAverage = {1};
 
   static void update(void *param) {
     IMU *imu = (IMU *)param;
     imu->running = true;
+
+    // Store raw read values
+    float accX;
+    float accY;
+    float accZ;
+
+    // Moving average to smooth readings
+    SMA<SMASIZE, float, float> accZAverage = {1};
+
+    // Get calibration
+    float baseAccZ;
+    SMA<CALIBRATIONSMASIZE, float, float> baseAccZAverage = {1};
+    for (int i = 0; i < CALIBRATIONSMASIZE; i++) {
+      delay(TICKTIME);
+      M5.IMU.getAccelData(&accX, &accY, &accZ);
+      baseAccZ = baseAccZAverage(accZ) - 1;
+    }
+
     while(true) {
       if (imu->running) {
         // Pull IMU data and offset by calibration value
-        M5.IMU.getAccelData(&imu->accX, &imu->accY, &imu->accZ);
-        imu->intensityBuffer.push(abs(1 - imu->accZAverage(abs(imu->accZ - imu->baseAccZ))) * SENSITIVITY);
+        M5.IMU.getAccelData(&accX, &accY, &accZ);
+        imu->intensityBuffer.push(abs(1 - accZAverage(abs(accZ - baseAccZ))) * SENSITIVITY);
       }
       vTaskDelay(TICKTIME / portTICK_PERIOD_MS);
     }
@@ -73,12 +80,6 @@ public:
       M5.Lcd.println("IMU Check failed");
       Serial.println("IMU Check failed");
       return;
-    }
-
-    for (int i = 0; i < CALIBRATIONSMASIZE; i++) {
-      delay(TICKTIME);
-      M5.IMU.getAccelData(&accX, &accY, &accZ);
-      baseAccZ = baseAccZAverage(accZ) - 1;
     }
 
     TaskHandle_t imuUpdateTaskHandle;
