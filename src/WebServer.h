@@ -12,14 +12,17 @@
 
 class WebServer {
 private:
-  bool ledState;
+  // bool ledState;
   AsyncWebServer *server;
   AsyncWebSocket *ws;
 
   void notifyClients(float* data, int size) {
-    String dataString = String(data[0], DATAPRECISION);
+    String dataString = String();
     for (int i = 1; i < size; i++) {
-      dataString = String(dataString + "," + String(data[i], DATAPRECISION));
+      if (i != 0) {
+        dataString += ",";
+      }
+      dataString += String(data[i], DATAPRECISION);
     }
     ws->textAll(dataString);
   }
@@ -42,11 +45,11 @@ private:
 
   String templateProcessor(const String &var) {
     if (var == "STATE") {
-      if (ledState) {
-        return "ON";
-      } else {
-        return "OFF";
-      }
+      // if (ledState) {
+      //   return "ON";
+      // } else {
+      //   return "OFF";
+      // }
     }
     return String();
   }

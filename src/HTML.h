@@ -74,14 +74,17 @@ const char index_html[] PROGMEM = R"rawliteral(
       COLORMULTIPLIER = 3;
 
       constructor() {
+        this.tickEven = 1;
         this.buffer = [];
-        this.canvas = document.getElementById("canvas");
-        this.context = canvas.getContext("2d");
+        this.drawBuffer = [];
+        this.canvas = document.getElementById('canvas');
+        this.context = canvas.getContext('2d');
         this.text = document.getElementById('state');
         this.setCanvasSize();
         window.addEventListener('resize', () => {
           this.setCanvasSize();
         });
+        this.text.style.display = 'none';
       }
 
       interpolateColor(n) {
@@ -112,28 +115,45 @@ const char index_html[] PROGMEM = R"rawliteral(
         this.context.fillRect(canvas.width - position, canvas.height / 2 - intensity * canvas.height, 2, intensity * canvas.height * 2);
       }
 
-      update(data) {
-        this.text.innerHTML = data[0];
-        this.buffer.unshift(...data);
-        const intensity = Math.abs(data);
+      storeData(data) {
+        this.buffer.push(...data);
+      }
 
-        this.context.clearRect(0, 0, canvas.width, canvas.height);
+      update(tickTime) {
+        const framesPerTick = 2 + this.tickEven;
+        this.tickEven = this.tickEven === 1 ? 0 : 1;
+
+        // Every time we're called, consume X frames, put them in the draw buffer
+        this.drawBuffer.unshift(...this.buffer.splice(0, framesPerTick));
+
+        // Draw from the drawbuffer
+        const data = this.buffer.slice(0, framesPerTick);
+        // console.log(this.buffer.length);
+
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         for (let i = canvas.width - 1; i >= 0; i--) {
-          if (this.buffer[i] !== undefined) {
-            this.drawLine(i, this.buffer[i]);
+          if (this.drawBuffer[i] !== undefined) {
+            this.drawLine(i, this.drawBuffer[i]);
           }
         }
+
+        // once the draw buffer exceeds canvas width, delete stuff
+        window.requestAnimationFrame((tickTime) => this.update(tickTime));
       }
     }
 
     let client;
     let ui;
     window.addEventListener('load', () => {
+      ui = new UI();
       client = new Client('192.168.1.202');
       client.addEventListener('data', (event) => {
-        ui.update(event.detail.data);
+        ui.storeData(event.detail.data);
       });
-      ui = new UI();
+
+      setTimeout(() => {
+        ui.update();
+      }, 3000);
     });
 
   </script>
