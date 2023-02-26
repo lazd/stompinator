@@ -1,16 +1,23 @@
 #ifndef __application_h__
 #define __application_h__
 
+#include "Constants.h"
 #include "IMU.h"
 #include "NTP.h"
 #include "UI.h"
 #include "Watcher.h"
 #include "WiFiManager.h"
-// #include "WebServer.h"
+
+#ifdef WEBSERVER
+#include "WebServer.h"
+#endif
 
 class Application {
 private:
-  // WebServer *webServer;
+  #ifdef WEBSERVER
+  WebServer *webServer;
+  #endif
+
   NTP *ntp;
   Watcher *watcher;
   WiFiManager *wifi;
@@ -31,7 +38,9 @@ public:
     this->imu = new IMU();
     this->ui = new UI();
     this->watcher = new Watcher();
-    // this->webServer = new WebServer();
+    #ifdef WEBSERVER
+    this->webServer = new WebServer();
+    #endif
   }
 
   void start() {
@@ -42,7 +51,9 @@ public:
     this->imu->start(this->dataQueue);
     this->ui->start();
     this->watcher->start();
-    // this->webServer->start();
+    #ifdef WEBSERVER
+    this->webServer->start();
+    #endif
   }
 
   void loop() {
@@ -56,7 +67,9 @@ public:
 
     this->ui->update(this->data, this->dataSize);
     this->watcher->update(this->data, this->dataSize);
-    // webServer->update(this->data, this->dataSize);
+    #ifdef WEBSERVER
+    webServer->update(this->data, this->dataSize);
+    #endif
   }
 };
 

@@ -22,7 +22,6 @@ private:
   unsigned long lastFlushTime;
   unsigned long lastSignificantEvent;
 
-  // About 1 second
   CircularBuffer<float, REWINDSTEPS> buffer;
 
   void openLogFile() {
