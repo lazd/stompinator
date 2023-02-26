@@ -33,6 +33,7 @@ private:
       this->logFile = SD.open(fileName, FILE_WRITE);
       if (!this->logFile) {
         Serial.println("Failed to open event file");
+        this->loggingEnabled = false;
       }
     }
   }
@@ -98,6 +99,7 @@ public:
         sessionFile.close();
       } else {
         Serial.println("Failed to open session file");
+        this->loggingEnabled = false;
       }
     } else {
       M5.Lcd.println("Watcher logging disabled");

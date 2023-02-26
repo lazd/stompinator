@@ -146,7 +146,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     let ui;
     window.addEventListener('load', () => {
       ui = new UI();
-      client = new Client('192.168.1.202');
+      client = new Client();
       client.addEventListener('data', (event) => {
         ui.storeData(event.detail.data);
       });
