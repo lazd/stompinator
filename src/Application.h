@@ -2,20 +2,18 @@
 #define __application_h__
 
 #include "IMU.h"
-#include "RTCManager.h"
+#include "NTP.h"
 #include "UI.h"
 #include "Watcher.h"
 #include "WiFiManager.h"
-// #include "Logger.h"
 // #include "WebServer.h"
 
 class Application {
 private:
-  // Logger *logger;
   // WebServer *webServer;
+  NTP *ntp;
   Watcher *watcher;
   WiFiManager *wifi;
-  RTCManager *rtc;
   IMU *imu;
   UI *ui;
 
@@ -29,11 +27,10 @@ private:
 public:
   Application() {
     this->wifi = new WiFiManager();
-    this->rtc = new RTCManager();
+    this->ntp = new NTP();
     this->imu = new IMU();
     this->ui = new UI();
     this->watcher = new Watcher();
-    // this->logger = new Logger();
     // this->webServer = new WebServer();
   }
 
@@ -41,16 +38,14 @@ public:
     this->dataQueue = xQueueCreate(IMUBUFFERSIZE, sizeof(float));
 
     this->wifi->start();
-    this->rtc->start();
+    this->ntp->start();
     this->imu->start(this->dataQueue);
     this->ui->start();
-    this->watcher->start(rtc);
-    // this->logger->start(this->rtc);
+    this->watcher->start();
     // this->webServer->start();
   }
 
   void loop() {
-    this->rtc->update();
 
     // Get data from IMU and pass to consumers
     float intensity;
@@ -61,7 +56,6 @@ public:
 
     this->ui->update(this->data, this->dataSize);
     this->watcher->update(this->data, this->dataSize);
-    // logger->update(this->data, this->dataSize);
     // webServer->update(this->data, this->dataSize);
   }
 };

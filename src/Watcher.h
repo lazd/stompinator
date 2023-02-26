@@ -3,15 +3,15 @@
 
 #include <Arduino.h>
 #include <CircularBuffer.h>
-
-#include "RTCManager.h"
+#include <TimeLib.h>
 
 #define FLUSHTIME 5000
+#define DATESTRINGLENGTH 10
+#define DATETIMESTRINGLENGTH 19
+#define TIMESTRINGLENGTH 8
 
 class Watcher {
 private:
-  RTCManager *rtc;
-
   File logFile;
   bool didInitialSleep;
   bool displaySleeping;
@@ -28,7 +28,7 @@ private:
   void openLogFile() {
     if (this->loggingEnabled) {
       char fileName[DATESTRINGLENGTH + TIMESTRINGLENGTH + 1 + 12];
-      sprintf(fileName, "/event-%s-%s.csv", rtc->getDateString(), rtc->getUnderscoreTimeString());
+      sprintf(fileName, "/event-%02d-%02d-%02d-%02d_%02d_%02d.csv", year(), month(), day(), hour(), minute(), second());
 
       this->logFile = SD.open(fileName, FILE_WRITE);
       if (!this->logFile) {
@@ -45,7 +45,7 @@ private:
 
   void logData(float data) {
     if (this->logFile) {
-      this->logFile.printf("%s,%5.10f\n", this->rtc->getTimeString(), data);
+      this->logFile.printf("%02d:%02d:%02d,%5.10f\n", hour(), minute(), second(), data);
     }
   }
 
@@ -80,9 +80,8 @@ private:
   }
 
 public:
-  void start(RTCManager *rtc) {
+  void start() {
     this->activeEvent = false;
-    this->rtc = rtc;
     this->loggingEnabled = false;
     this->displaySleeping = false;
     this->didInitialSleep = false;
@@ -95,7 +94,7 @@ public:
 
       File sessionFile = SD.open("/sessions.csv", FILE_APPEND);
       if (sessionFile) {
-        sessionFile.println(rtc->getDateTimeString());
+        sessionFile.printf("%02d-%02d-%02d %02d:%02d:%02d\n", year(), month(), day(), hour(), minute(), second());
         sessionFile.close();
       } else {
         Serial.println("Failed to open session file");
