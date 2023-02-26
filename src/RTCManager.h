@@ -16,6 +16,7 @@ private:
   RTC_DateTypeDef dateStruct;
   RTC_TimeTypeDef timeStruct;
 
+  unsigned long lastUpdateTime = 0;
   char dateString[DATESTRINGLENGTH + 1];
   char timeString[TIMESTRINGLENGTH + 1];
   char dateTimeString[DATETIMESTRINGLENGTH + 1];
@@ -74,6 +75,7 @@ public:
   }
 
   void start() {
+    M5.Rtc.begin();
     M5.Lcd.printf("Syncing to %s\n", NTPSERVER);
     bool timeFetchedSuccessfully = false;
     int timeFetchTries = 0;
@@ -90,13 +92,17 @@ public:
   }
 
   void update() {
-    M5.Rtc.GetDate(&dateStruct);
-    M5.Rtc.GetTime(&timeStruct);
+    if (millis() - lastUpdateTime >= 1000) {
+      lastUpdateTime = millis();
 
-    sprintf(this->dateString, "%02d-%02d-%02d", dateStruct.Year, dateStruct.Month, dateStruct.Date);
-    sprintf(this->timeString, "%02d:%02d:%02d", timeStruct.Hours, timeStruct.Minutes, timeStruct.Seconds);
-    sprintf(this->underscoreTimeString, "%02d_%02d_%02d", timeStruct.Hours, timeStruct.Minutes, timeStruct.Seconds);
-    sprintf(this->dateTimeString, "%s %s", this->dateString, this->timeString);
+      M5.Rtc.GetDate(&dateStruct);
+      M5.Rtc.GetTime(&timeStruct);
+
+      sprintf(this->dateString, "%02d-%02d-%02d", dateStruct.Year, dateStruct.Month, dateStruct.Date);
+      sprintf(this->timeString, "%02d:%02d:%02d", timeStruct.Hours, timeStruct.Minutes, timeStruct.Seconds);
+      sprintf(this->underscoreTimeString, "%02d_%02d_%02d", timeStruct.Hours, timeStruct.Minutes, timeStruct.Seconds);
+      sprintf(this->dateTimeString, "%s %s", this->dateString, this->timeString);
+    }
   }
 };
 
