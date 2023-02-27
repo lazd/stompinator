@@ -29,14 +29,20 @@ const char index_html[] PROGMEM = R"rawliteral(
   <span id="state">%STATE%</span>
   <script>
     class Client extends EventTarget {
+      gateway = window.location.hostname;
       constructor(server) {
         super();
-        const gateway = `ws://${server ?? window.location.hostname}/ws`;
-        console.log(`Connecting to ${gateway}`);
+        this.gateway = `ws://${server ?? this.gateway}/ws`;
+        this.connect();
+      }
 
-        this.websocket = new WebSocket(gateway);
+      connect() {
+        console.log(`Connecting to ${this.gateway}`);
+
+        this.websocket = new WebSocket(this.gateway);
         this.websocket.onopen = (event) => {
           this.onOpen(event);
+          clearInterval(this.reconnectInterval);
         };
 
         this.websocket.onclose = (event) => {
@@ -50,11 +56,13 @@ const char index_html[] PROGMEM = R"rawliteral(
 
       onOpen(event) {
         console.log('Connection opened');
+        this.dispatchEvent(new CustomEvent('open'));
       }
 
       onClose(event) {
         console.log('Connection closed');
-        setTimeout(initWebSocket, 2000);
+        this.dispatchEvent(new CustomEvent('close'));
+        this.reconnectInterval = setInterval(() => this.connect(), 2000);
       }
 
       onMessage(event) {
@@ -72,6 +80,9 @@ const char index_html[] PROGMEM = R"rawliteral(
 
     class UI {
       COLORMULTIPLIER = 3;
+      MINBUFFERSIZE = 240;
+      lastUpdate = 0;
+      running = true;
 
       constructor() {
         this.tickEven = 1;
@@ -116,28 +127,54 @@ const char index_html[] PROGMEM = R"rawliteral(
       }
 
       storeData(data) {
+        // const elapsed = window.performance.now() - this.lastUpdate;
+        // console.log(Math.round(elapsed), data.length);
+        this.lastUpdate = window.performance.now();
         this.buffer.push(...data);
       }
 
-      update(tickTime) {
-        const framesPerTick = 2;
+      start() {
+        this.running = true;
+        this.update();
+      }
 
-        // Every time we're called, consume X frames, put them in the draw buffer
-        this.drawBuffer.unshift(...this.buffer.splice(0, framesPerTick));
+      stop() {
+        this.running = false;
+      }
 
-        // Draw from the drawbuffer
-        const data = this.buffer.slice(0, framesPerTick);
-        console.log(`Buffer size: ${this.buffer.length}`);
+      update() {
+        if (!this.running) {
+          return;
+        }
 
-        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        for (let i = canvas.width - 1; i >= 0; i--) {
-          if (this.drawBuffer[i] !== undefined) {
-            this.drawLine(i, this.drawBuffer[i]);
+        if (this.buffer.length >= this.MINBUFFERSIZE) {
+          const framesPerTick = 2;
+
+          // Every time we're called, consume X frames, put them in the draw buffer
+          this.drawBuffer.unshift(...this.buffer.splice(0, framesPerTick));
+
+          // Draw from the drawbuffer
+          const data = this.buffer.slice(0, framesPerTick);
+
+          // Drop a frame when the buffer gets too big
+          if (this.buffer.length > this.MINBUFFERSIZE * 2) {
+            this.buffer.shift();
+            console.warn('Dropping a frame');
           }
+
+          this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+          for (let i = canvas.width - 1; i >= 0; i--) {
+            if (this.drawBuffer[i] !== undefined) {
+              this.drawLine(i, this.drawBuffer[i]);
+            }
+          }
+        }
+        else {
+          console.warn('Buffer underrun');
         }
 
         // once the draw buffer exceeds canvas width, delete stuff
-        window.requestAnimationFrame((tickTime) => this.update(tickTime));
+        window.requestAnimationFrame(() => this.update());
       }
     }
 
@@ -145,14 +182,18 @@ const char index_html[] PROGMEM = R"rawliteral(
     let ui;
     window.addEventListener('load', () => {
       ui = new UI();
-      client = new Client('192.168.1.205');
+      client = new Client();
       client.addEventListener('data', (event) => {
         ui.storeData(event.detail.data);
       });
 
-      setTimeout(() => {
-        ui.update();
-      }, 1500);
+      client.addEventListener('open', (event) => {
+        ui.start();
+      });
+
+      client.addEventListener('close', (event) => {
+        ui.stop();
+      });
     });
 
   </script>
