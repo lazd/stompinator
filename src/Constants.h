@@ -23,8 +23,8 @@
 /* Watcher */
 #define WATCHTHRESHOLD 0.16
 #define INSTANCETHRESHOLD 0.08
-#define INITIALWAKETIME 10 * 1000  // 10 seconds
-#define EVENTTIMEOUT 10 * 1000  // 10 seconds
+#define INITIALWAKETIME 20 * 1000  // 20 seconds
+#define EVENTTIMEOUT 3 * 1000  // 3 seconds
 #define REWINDSTEPS 240 // ~2 seconds
 
 /* Config */
