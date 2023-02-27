@@ -70,9 +70,9 @@ private:
 
   void logInstance() {
     this->openLogFile();
+    Serial.printf("[%02d:%02d:%02d] %5.10f for %dms\n", hour(this->instanceStartTimeSeconds), minute(this->instanceStartTimeSeconds), second(this->instanceStartTimeSeconds), this->instanceMaxIntensity, this->instanceEndTime - this->instanceStartTime);
     if (this->logFile) {
       this->logFile.printf("%02d:%02d:%02d,%5.10f,%d\n", hour(this->instanceStartTimeSeconds), minute(this->instanceStartTimeSeconds), second(this->instanceStartTimeSeconds), this->instanceMaxIntensity, this->instanceEndTime - this->instanceStartTime);
-      Serial.printf("[%02d:%02d:%02d] %5.10f for %dms\n", hour(this->instanceStartTimeSeconds), minute(this->instanceStartTimeSeconds), second(this->instanceStartTimeSeconds), this->instanceMaxIntensity, this->instanceEndTime - this->instanceStartTime);
     }
   }
 
