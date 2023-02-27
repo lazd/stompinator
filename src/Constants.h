@@ -5,7 +5,7 @@
 
 /* IMU */
 #define SENSITIVITY 6
-#define TICKTIME 5 // 200Hz
+#define TICKTIME 6
 #define IMUBUFFERSIZE 32
 #define SMASIZE 5
 #define CALIBRATIONSMASIZE 10
@@ -24,4 +24,7 @@
 #define WATCHTHRESHOLD 0.16
 #define INITIALWAKETIME 10 * 1000  // 10 seconds
 #define EVENTTIMEOUT 10 * 1000  // 10 seconds
-#define REWINDSTEPS 1000 / TICKTIME * 2 // 2 seconds
+#define REWINDSTEPS 240 // ~2 seconds
+
+/* Config */
+#define WEBSERVER

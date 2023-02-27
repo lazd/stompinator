@@ -36,7 +36,7 @@ private:
       M5.IMU.getAccelData(&accX, &accY, &accZ);
       float intensity = abs(1 - accZAverage(abs(accZ - baseAccZ))) * SENSITIVITY;
       xQueueSend(imu->dataQueue, &intensity, 0);
-      vTaskDelay(TICKTIME / portTICK_PERIOD_MS);
+      vTaskDelay(pdMS_TO_TICKS(TICKTIME));
     }
   }
 

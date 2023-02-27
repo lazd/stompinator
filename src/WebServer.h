@@ -4,11 +4,15 @@
 #define CONFIG_ASYNC_TCP_RUNNING_CORE 1
 
 #include <AsyncTCP.h>
+#include <CircularBuffer.h>
 #include <ESPAsyncWebServer.h>
+
+#include "Constants.h"
 #include "HTML.h"
 
 #define SERVERPORT 80
 #define DATAPRECISION 6
+#define SERVERUPDATEINTERVAL 450
 
 class WebServer {
 private:
@@ -16,14 +20,20 @@ private:
   AsyncWebServer *server;
   AsyncWebSocket *ws;
 
-  void notifyClients(float* data, int size) {
+  CircularBuffer<float, REWINDSTEPS> buffer;
+  unsigned long lastUpdateTime = 0;
+
+  void notifyClients() {
+    // Empty the buffer and send it to clients
     String dataString = String();
-    for (int i = 1; i < size; i++) {
+    int i;
+    for (i = 0; i < REWINDSTEPS && !buffer.isEmpty(); i++) {
       if (i != 0) {
         dataString += ",";
       }
-      dataString += String(data[i], DATAPRECISION);
+      dataString += String(buffer.shift(), DATAPRECISION);
     }
+    buffer.clear();
     ws->textAll(dataString);
   }
 
@@ -88,9 +98,16 @@ public:
     server->begin();
   }
 
-  void update(float* data, int size) {
-    ws->cleanupClients();
-    notifyClients(data, size);
+  void update(float *data, int size) {
+    for (int i = 0; i < size; i++) {
+      buffer.push(data[i]);
+    }
+
+    if (millis() - lastUpdateTime >= SERVERUPDATEINTERVAL) {
+      ws->cleanupClients();
+      notifyClients();
+      lastUpdateTime = millis();
+    }
   }
 };
 

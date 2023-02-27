@@ -112,7 +112,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 
       drawLine(position, intensity) {
         this.context.fillStyle = this.interpolateColor(intensity);
-        this.context.fillRect(canvas.width - position, canvas.height / 2 - intensity * canvas.height, 2, intensity * canvas.height * 2);
+        this.context.fillRect(canvas.width - position, canvas.height / 2 - intensity * canvas.height / 2, 2, intensity * canvas.height);
       }
 
       storeData(data) {
@@ -120,15 +120,14 @@ const char index_html[] PROGMEM = R"rawliteral(
       }
 
       update(tickTime) {
-        const framesPerTick = 2 + this.tickEven;
-        this.tickEven = this.tickEven === 1 ? 0 : 1;
+        const framesPerTick = 2;
 
         // Every time we're called, consume X frames, put them in the draw buffer
         this.drawBuffer.unshift(...this.buffer.splice(0, framesPerTick));
 
         // Draw from the drawbuffer
         const data = this.buffer.slice(0, framesPerTick);
-        // console.log(this.buffer.length);
+        console.log(`Buffer size: ${this.buffer.length}`);
 
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         for (let i = canvas.width - 1; i >= 0; i--) {
@@ -146,14 +145,14 @@ const char index_html[] PROGMEM = R"rawliteral(
     let ui;
     window.addEventListener('load', () => {
       ui = new UI();
-      client = new Client();
+      client = new Client('192.168.1.205');
       client.addEventListener('data', (event) => {
         ui.storeData(event.detail.data);
       });
 
       setTimeout(() => {
         ui.update();
-      }, 3000);
+      }, 1500);
     });
 
   </script>
