@@ -5,10 +5,14 @@
 #include <CircularBuffer.h>
 #include <TimeLib.h>
 
+#include <Filters/MedianFilter.hpp>
+#include "Constants.h"
+
 #define FLUSHTIME 5000
 #define DATESTRINGLENGTH 10
 #define DATETIMESTRINGLENGTH 19
 #define TIMESTRINGLENGTH 8
+#define INSTANCEFILTERSIZE 50
 
 class Watcher {
 private:
@@ -17,12 +21,19 @@ private:
   bool displaySleeping;
   bool loggingEnabled;
   bool activeEvent;
-  float eventMaxIntensity;
+  float eventMaxIntensity = 0;
+  float currentPartIntensity = 0;
   unsigned long eventStartTime;
   unsigned long lastFlushTime;
-  unsigned long lastSignificantEvent;
+  unsigned long lastSignificantInstance;
+
+  bool instanceActive = false;
+  float instanceMaxIntensity = 0;
+  unsigned long instanceStartTime;
 
   CircularBuffer<float, REWINDSTEPS> buffer;
+  SMA<INSTANCEFILTERSIZE, float, float> instanceAverage = {0};
+  // MedianFilter<INSTANCEFILTERSIZE, float> instanceAverage = {0};
 
   void openLogFile() {
     if (this->loggingEnabled) {
@@ -105,6 +116,37 @@ public:
     }
   }
 
+  void startInstance(float intensity) {
+    instanceAverage = {intensity};
+    this->instanceActive = true;
+    this->instanceStartTime = millis();
+  }
+
+  void trackInstance(float intensity) {
+    if (this->instanceActive) {
+      float currentInstanceAverage = instanceAverage(intensity);
+      if (currentInstanceAverage > INSTANCETHRESHOLD) {
+        if (intensity > this->instanceMaxIntensity) {
+          this->instanceMaxIntensity = intensity;
+        }
+      }
+      else {
+        this->stopInstance();
+      }
+    }
+    else {
+      if (intensity > WATCHTHRESHOLD) {
+        this->startInstance(intensity);
+      }
+    }
+  }
+
+  void stopInstance() {
+    // Log instance
+    this->instanceActive = false;
+    Serial.println("Stomp!");
+  }
+
   void update(float *data, int size) {
     for (int i = 0; i < size; i++) {
       if (data[i] > WATCHTHRESHOLD) {
@@ -112,10 +154,13 @@ public:
           this->wake();
 
           Serial.printf("Event detected with intensity %f\n", data[i]);
-          this->eventStartTime = this->lastSignificantEvent = this->lastFlushTime = millis();
+          this->eventStartTime = this->lastSignificantInstance = this->lastFlushTime = millis();
           this->eventMaxIntensity = data[i];
+
           this->activeEvent = true;
           this->openLogFile();
+
+          this->startInstance(data[i]);
 
           // Pop the last REWINDSTEPS samples and include them in the log
           float rewindBuffer[REWINDSTEPS];
@@ -132,11 +177,13 @@ public:
 
           buffer.clear();
         } else {
-          this->lastSignificantEvent = millis();
+          this->lastSignificantInstance = millis();
         }
       }
 
       if (this->activeEvent) {
+        this->trackInstance(data[i]);
+
         this->logData(data[i]);
         if (data[i] > this->eventMaxIntensity) {
           this->eventMaxIntensity = data[i];
@@ -154,7 +201,7 @@ public:
       this->didInitialSleep = true;
     }
 
-    if (this->activeEvent && millis() - this->lastSignificantEvent > EVENTTIMEOUT) {
+    if (this->activeEvent && millis() - this->lastSignificantInstance > EVENTTIMEOUT) {
       Serial.printf("Event lasted %d seconds\n", (millis() - this->eventStartTime) / 1000);
       Serial.printf("Max intensity was %f\n", this->eventMaxIntensity);
       this->logStats();
