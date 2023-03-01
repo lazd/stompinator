@@ -21,8 +21,8 @@
 #define TEXTSIZE 2
 
 /* Watcher */
-#define WATCHTHRESHOLD 0.14
-#define INSTANCETHRESHOLD 0.08
+#define WATCHTHRESHOLD 0.10
+#define INSTANCETHRESHOLD 0.06
 #define INITIALWAKETIME 20 * 1000  // 20 seconds
 #define EVENTTIMEOUT 3 * 1000  // 3 seconds
 #define REWINDSTEPS 240 // ~2 seconds
