@@ -150,7 +150,9 @@ public:
 
     server->on("/data.json", HTTP_GET, [this](AsyncWebServerRequest *request) {
       // Root listing
-      request->send(200, "application/json", getDataFiles());
+      AsyncWebServerResponse *response = request->beginResponse(200, "application/json", getDataFiles());
+      response->addHeader("Access-Control-Allow-Origin", "*");
+      request->send(response);
     });
 
     server->on("/data", HTTP_GET, [this](AsyncWebServerRequest *request) {
@@ -174,6 +176,7 @@ public:
 
             AsyncWebServerResponse *response = request->beginResponse(200, "text/csv", fileContents);
             response->addHeader("Content-Disposition", contentDisposition);
+            response->addHeader("Access-Control-Allow-Origin", "*");
 
             request->send(response);
           }
