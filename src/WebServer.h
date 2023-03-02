@@ -3,6 +3,7 @@
 
 #define CONFIG_ASYNC_TCP_RUNNING_CORE 1
 
+#include <M5Core2.h>
 #include <AsyncTCP.h>
 #include <CircularBuffer.h>
 #include <ESPAsyncWebServer.h>
