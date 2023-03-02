@@ -53,17 +53,6 @@ private:
     server->addHandler(ws);
   }
 
-  String templateProcessor(const String &var) {
-    if (var == "STATE") {
-      // if (ledState) {
-      //   return "ON";
-      // } else {
-      //   return "OFF";
-      // }
-    }
-    return String();
-  }
-
 public:
   void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
     switch (type) {
@@ -145,7 +134,7 @@ public:
 
     // Route for root / web page
     server->on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
-      request->send_P(200, "text/html", index_html, std::bind(&WebServer::templateProcessor, this, std::placeholders::_1));
+      request->send(200, "text/html", index_html);
     });
 
     server->on("/data.json", HTTP_GET, [this](AsyncWebServerRequest *request) {
