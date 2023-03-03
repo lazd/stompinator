@@ -17,6 +17,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       --background-color: var(--color-void);
       --foreground-color: var(--color-white);
       --font-size: 1rem;
+      --component-height: 2rem;
       --font-family: 'V5 Prophit', 'Courier New', Courier, monospace;
 
       --color-void: rgb(0, 0, 0);
@@ -35,8 +36,9 @@ const char index_html[] PROGMEM = R"rawliteral(
       --color-seablue: rgb(0, 87, 132);
       --color-skyblue: rgb(49, 162, 242);
       --color-cloudblue: rgb(178, 220, 239);
-      --color-purple: rgb(179, 53, 233);
-      --color-darkpurple: rgb(81, 22, 106);
+      --color-lightpurple: rgb(179, 53, 233);
+      --color-purple: rgb(147, 47, 189);
+      --color-darkpurple: rgb(109, 30, 143);
 
       --axis-color: var(--color-brown);
       --axis-label-color: var(--color-yellow);
@@ -52,6 +54,14 @@ const char index_html[] PROGMEM = R"rawliteral(
       --dialog-border-color: var(--color-skyblue);
       --dialog-header-color: var(--color-seablue);
       --dialog-header-font-color: var(--color-white);
+
+      --button-color: var(--color-darkpurple);
+      --button-color-hover: var(--color-purple);
+      --button-border-color: var(--color-purple);
+      --button-border-color-hover: var(--color-lightpurple);
+      --button-border-width: 0.125rem;
+      --button-press-distance: 0.125rem;
+      --button-padding: 0.5rem;
     }
 
     html {
@@ -106,68 +116,6 @@ const char index_html[] PROGMEM = R"rawliteral(
       height: 100%;
     }
 
-    .tabs {
-      display: flex;
-      flex-direction: row;
-      overflow-y: auto;
-      flex-shrink: 0;
-      flex-wrap: nowrap;
-      gap: 1rem;
-      margin: 0 0.5rem;
-      scroll-behavior: smooth;
-    }
-
-    .tabs::-webkit-scrollbar {
-      display: none;
-    }
-
-    .tab {
-      margin: 0.5rem;
-      flex-grow: 0;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: center;
-      text-decoration: none;
-      font-weight: bold;
-      color: var(--tab-font-color);
-      border: 2px solid var(--tab-border-color);
-      background-color: var(--tab-background-color);
-      opacity: 0.75;
-      transition: all 125ms ease-in-out;
-    }
-
-    .tab-value {
-      display: block;
-      padding: 0.5rem 1rem;
-      white-space: nowrap;
-      font-size: 1.5rem;
-      background: var(--tab-label-color);
-    }
-
-    .tab-label {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 0.5rem;
-      height: 100%;
-      background: var(--tab-value-color);
-    }
-
-    .tab:hover,
-    .tab:focus-visible {
-      z-index: 1;
-      opacity: 1;
-    }
-
-    .tab:focus-visible {
-      outline: 8px ridge var(--color-purple);
-    }
-
-    .tab.is-selected {
-      opacity: 1;
-    }
-
     #browser-viewer {
       height: 100%;
       flex: 1;
@@ -184,11 +132,22 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
 
     .dialog-header {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 1rem;
       margin: 0;
-      padding: 0.5rem 0.75rem;
       white-space: nowrap;
       background: var(--dialog-header-color);
       color: var(--dialog-header-font-color);
+      font-size: var(--heading-font-size);
+      height: calc(var(--component-height) + 0.5rem);
+      padding: 0 0.25rem;
+    }
+
+    .dialog-header h2 {
+      flex: 1;
+      margin: 0 0.5rem;
       font-size: var(--heading-font-size);
     }
 
@@ -225,7 +184,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
 
     thead {
-      color: var(--color-purple);
+      color: var(--color-lightpurple);
       text-shadow: 1px 1px var(--color-darkpurple);
       font-weight: normal;
       position: sticky;
@@ -247,17 +206,100 @@ const char index_html[] PROGMEM = R"rawliteral(
     .trends {
       width: 50%;
     }
+
+    /* button */
+    select,
+    button {
+      appearance: none;
+      background-color: var(--button-color);
+      border: var(--button-border-width) solid var(--button-border-color);
+      margin: 0;
+      padding: 0 var(--button-padding);
+
+      font-family: var(--font-family);
+      font-size: var(--font-size);
+      font-weight: bold;
+      color: var(--foreground-color);
+      height: var(--component-height);
+
+      transition: all 75ms linear;
+    }
+
+    select:focus,
+    button:focus {
+      outline: none;
+    }
+
+    select:focus-visible,
+    button:focus-visible {
+      outline: 0.25rem ridge var(--color-orange);
+      animation: outline-throb 500ms ease-in-out infinite alternate;
+    }
+
+    select:hover,
+    button:hover {
+      cursor: pointer;
+      --button-border-color: var(--button-border-color-hover);
+      --button-color: var(--button-color-hover);
+    }
+
+    select:active,
+    button:active {
+      box-shadow: var(--button-press-distance) var(--button-press-distance) var(--color-void) inset;
+      background: var(--button-color);
+    }
+
+    button:active {
+      padding-top: var(--button-press-distance);
+      padding-left: calc(var(--button-padding) + var(--button-press-distance));
+      padding-right: calc(var(--button-padding) - var(--button-press-distance));
+    }
+
+    select {
+      --select-box-size: 1.75rem;
+      --select-triangle-size: 0.5rem;
+      --select-triangle-x-position: 0.3625rem;
+      --select-triangle-y-position: 0.625rem;
+      padding-right: 2rem;
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--color-void) 50%),
+        linear-gradient(135deg, var(--color-void) 50%, transparent 50%),
+        linear-gradient(to right, var(--button-border-color), var(--button-border-color));
+
+      background-position:
+        calc(100% - var(--select-triangle-size) - var(--select-triangle-x-position)) var(--select-triangle-y-position),
+        calc(100% - var(--select-triangle-x-position)) var(--select-triangle-y-position),
+        100% 0;
+
+      background-size:
+        var(--select-triangle-size) var(--select-triangle-size),
+        var(--select-triangle-size) var(--select-triangle-size),
+        var(--select-box-size) var(--select-box-size);
+
+      background-repeat: no-repeat;
+    }
+
+    @keyframes outline-throb {
+      0% {
+        outline-offset: 0.125rem;
+      }
+
+      100% {
+        outline-offset: 0.25rem;
+      }
+    }
   </style>
 </head>
 
 <body>
   <div id="top">
     <div class="dialog hallOfFame">
-      <h2 class="dialog-header">hall of fame</h2>
+      <div class="dialog-header">
+        <h2>hall of fame</h2>
+      </div>
       <div class="dialog-content">
         <table>
           <thead>
-            <!-- <th>date</th> -->
             <th>time</th>
             <th>power</th>
             <th>length</th>
@@ -269,10 +311,11 @@ const char index_html[] PROGMEM = R"rawliteral(
     </div>
 
     <div class="dialog trends">
-      <h2 class="dialog-header">trends</h2>
+      <div class="dialog-header">
+        <h2>trends</h2><select id="browser-picker"></select>
+      </div>
       <div class="dialog-content">
         <div id="browser">
-          <nav class="tabs" id="browser-list"></nav>
           <div id="browser-viewer"></div>
         </div>
       </div>
@@ -280,8 +323,11 @@ const char index_html[] PROGMEM = R"rawliteral(
   </div>
 
   <div id="bottom">
-    <div class="dialog">
-      <h2 class="dialog-header">live data</h2>
+    <div class="dialog liveData">
+      <div class="dialog-header">
+        <h2>live data</h2><button
+          onclick="this.dispatchEvent(new Event('calibrate', { bubbles: true }))">calibrate</button>
+      </div>
       <div class="dialog-content">
         <span id="realtimevalue"></span>
         <canvas id="canvas"></canvas>
@@ -366,8 +412,8 @@ const char index_html[] PROGMEM = R"rawliteral(
         }));
       }
 
-      toggle() {
-        websocket.send('toggle');
+      sendMessage(message) {
+        this.websocket.send(message);
       }
     }
 
@@ -556,18 +602,17 @@ const char index_html[] PROGMEM = R"rawliteral(
       constructor(server) {
         this.server = `http://${server ?? this.server}/`;
         this.el = document.getElementById('browser');
-        this.list = document.getElementById('browser-list');
+        this.picker = document.getElementById('browser-picker');
         this.graph = document.getElementById('browser-viewer');
         this.hallOfFame = document.getElementById('hallOfFame');
 
         void this.update();
 
-        this.el.addEventListener('click', (event) => {
-          const anchor = event.target.closest('a');
-          if (anchor) {
-            const file = anchor.getAttribute('href');
-            this.drawGraph(file);
-            event.preventDefault();
+        this.picker.addEventListener('change', (event) => {
+          const select = event.target.closest('select');
+          if (select) {
+            this.drawGraph(select.value);
+            select.blur();
           }
         });
 
@@ -590,10 +635,10 @@ const char index_html[] PROGMEM = R"rawliteral(
       async update() {
         const fileList = await this.fetchFileList();
         if (fileList) {
-          this.drawFileList(fileList);
+          this.drawFilePicker(fileList);
           if (fileList.length) {
-            const file = [fileList.length - 1];
-            if (file.size < 10000) {
+            const file = fileList[fileList.length - 1];
+            if (file.size < 1024 * 1024) {
               this.drawGraph(file.name);
             }
           }
@@ -622,17 +667,14 @@ const char index_html[] PROGMEM = R"rawliteral(
         return fileList;
       }
 
-      drawFileList(fileList) {
-        this.list.innerHTML = '';
-        fileList.forEach(file => {
+      drawFilePicker(fileList) {
+        this.picker.innerHTML = '<option></option>';
+        fileList.slice().reverse().forEach(file => {
           const epochTime = Date.parse(file.name.replace(/log-(.*?).csv/, '$1'));
           const date = new Date();
           date.setTime(epochTime);
-          this.list.innerHTML += `
-          <a class="tab" href="${file.name}">
-              <span class="tab-value">${date.toDateString()}</span>
-              <span class="tab-label">${Math.round(this.getApproximateEntryCount(file.size)).toLocaleString()}</span>
-          </a>`;
+          this.picker.innerHTML += `
+          <option value="${file.name}">${date.toDateString()}</option>`;
         });
       }
 
@@ -649,14 +691,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         this.currentFile = fileName;
         const date = fileName.replace(/log-(\d{4}-\d{2}-\d{2}).csv/, '$1');
 
-        const anchors = this.list.querySelectorAll('a');
-        for (let anchor of anchors) {
-          const isTargetAnchor = anchor.getAttribute('href') === fileName;
-          anchor.classList[isTargetAnchor ? 'add' : 'remove']('is-selected');
-          if (isTargetAnchor) {
-            anchor.scrollIntoView();
-          }
-        }
+        this.picker.value = fileName;
 
         var totalWidth = this.graph.offsetWidth;
         var totalHeight = this.graph.offsetHeight;
@@ -806,7 +841,8 @@ const char index_html[] PROGMEM = R"rawliteral(
                 const curTickCenter = currentRect.right - (currentRect.right - currentRect.left) / 2;
                 const overlap = (lastTickCenter + largestTick) > curTickCenter;
                 if (overlap) {
-                  tick.style.display = 'none';
+                  const text = tick.querySelector('text');
+                  text.style.display = 'none';
                 }
                 else {
                   lastRect = currentRect;
@@ -833,6 +869,11 @@ const char index_html[] PROGMEM = R"rawliteral(
 
       client.addEventListener('close', (event) => {
         ui.stop();
+      });
+
+      window.addEventListener('calibrate', () => {
+        console.log('Requesting calibration');
+        client.sendMessage('calibrate');
       });
 
       browser = new Browser(window.server);
