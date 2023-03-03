@@ -70,6 +70,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       position: fixed;
       inset: 0;
       gap: 0.75rem;
+      transition: transform 20ms linear;
     }
 
     html,
@@ -378,6 +379,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       SEGMENTSPACING = 2;
       DATAPOINTERPERTICK = 6;
       SKIPFRAMES = 2;
+      SCREENSHAKEFACTOR = 10;
 
       running = true;
       lastUpdate = 0;
@@ -451,6 +453,18 @@ const char index_html[] PROGMEM = R"rawliteral(
         this.running = false;
       }
 
+      shakeScreen(intensity) {
+        if (intensity < 0.1) {
+          document.body.style.transform = '';
+          return;
+        }
+        let c = intensity * this.SCREENSHAKEFACTOR;
+        let beta = Math.random() * 90;
+        let a = c * Math.cos(beta);
+        let b = c * Math.sin(beta);
+        document.body.style.transform = `translate3d(${a}px, ${b}px, ${c / 2}px)`;
+      }
+
       update(time) {
         // Skip frames since we're so retro
         if (this.frameSkip < this.SKIPFRAMES) {
@@ -506,6 +520,10 @@ const char index_html[] PROGMEM = R"rawliteral(
             }
 
             this.drawSegmentedVUBar(drawLocation, max);
+
+            if (curItem === 1) {
+              this.shakeScreen(max);
+            }
           }
         }
         else {
@@ -574,7 +592,10 @@ const char index_html[] PROGMEM = R"rawliteral(
         if (fileList) {
           this.drawFileList(fileList);
           if (fileList.length) {
-            this.drawGraph(fileList[fileList.length - 1].name);
+            const file = [fileList.length - 1];
+            if (file.size < 10000) {
+              this.drawGraph(file.name);
+            }
           }
         }
       }
