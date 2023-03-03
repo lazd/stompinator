@@ -127,21 +127,6 @@ public:
     return jsonData;
   }
 
-  String getDataFile(const char *fileName) {
-    String fullFileName = String('/');
-    fullFileName += fileName;
-
-    String fileContents = String();
-    File file = SD.open(fullFileName.c_str(), FILE_READ);
-    if (file) {
-      while (file.available()) {
-        fileContents += (char)file.read();
-      }
-      file.close();
-    }
-    return fileContents;
-  }
-
   void start(esp_event_loop_handle_t loopHandle) {
     this->loopHandle = loopHandle;
 
@@ -161,46 +146,13 @@ public:
     server->on("/data.json", HTTP_GET, [this](AsyncWebServerRequest *request) {
       // Root listing
       AsyncWebServerResponse *response = request->beginResponse(200, "application/json", getDataFiles());
-      response->addHeader("Access-Control-Allow-Origin", "*");
       request->send(response);
     });
 
-    server->on("/data", HTTP_GET, [this](AsyncWebServerRequest *request) {
-      if (request->hasParam("download")) {
-        // File request
-        const char *fileName = request->getParam("download")->value().c_str();
-
-        // Only allow log files and the sessions file
-        if ((strlen(fileName) == 18 && strncmp("log-", fileName, 4) == 0) ||
-            (strlen(fileName) == 12 && strncmp("sessions.csv", fileName, 12) == 0)) {
-          String fileContents = getDataFile(fileName);
-          if (fileContents.length() == 0) {
-            Serial.printf("404: %s not found\n", fileName);
-            request->send(404);
-          } else {
-            Serial.printf("200: %s requested\n", fileName);
-
-            String contentDisposition = "attachment; filename=\"";
-            contentDisposition += fileName;
-            contentDisposition += "\"";
-
-            AsyncWebServerResponse *response = request->beginResponse(200, "text/csv", fileContents);
-            response->addHeader("Content-Disposition", contentDisposition);
-            response->addHeader("Access-Control-Allow-Origin", "*");
-
-            request->send(response);
-          }
-        } else {
-          Serial.printf("403: Forbidden file requested: %s\n", fileName);
-          request->send(403);
-        }
-      } else {
-        Serial.println("400: /data request missing download parameter");
-        request->send(400);
-      }
-    });
+    server->serveStatic("/data/", SD, "/");
 
     // Start server
+    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
     server->begin();
   }
 
