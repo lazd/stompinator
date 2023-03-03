@@ -17,6 +17,8 @@
 
 class Watcher {
 private:
+  esp_event_loop_handle_t loopHandle;
+
   File logFile;
   uint logYear;
   uint logMonth;
@@ -29,7 +31,7 @@ private:
   bool hasActiveInstance = false;
   float instanceMaxIntensity = 0;
   unsigned long lastFlushTime;
-  time_t instanceStartTimeSeconds;
+  time_t instanceStartTimeSecondsUTC;
   unsigned long instanceStartTime;
   unsigned long instanceEndTime;
 
@@ -70,9 +72,9 @@ private:
 
   void logInstance() {
     this->openLogFile();
-    Serial.printf("[%02d:%02d:%02d] %5.10f for %dms\n", hour(this->instanceStartTimeSeconds), minute(this->instanceStartTimeSeconds), second(this->instanceStartTimeSeconds), this->instanceMaxIntensity, this->instanceEndTime - this->instanceStartTime);
+    Serial.printf("[%02d:%02d:%02d] %5.10f for %dms\n", hour(this->instanceStartTimeSecondsUTC), minute(this->instanceStartTimeSecondsUTC), second(this->instanceStartTimeSecondsUTC), this->instanceMaxIntensity, this->instanceEndTime - this->instanceStartTime);
     if (this->logFile) {
-      this->logFile.printf("%02d:%02d:%02d,%5.10f,%d\n", hour(this->instanceStartTimeSeconds), minute(this->instanceStartTimeSeconds), second(this->instanceStartTimeSeconds), this->instanceMaxIntensity, this->instanceEndTime - this->instanceStartTime);
+      this->logFile.printf("%02d:%02d:%02d,%5.10f,%d\n", hour(this->instanceStartTimeSecondsUTC), minute(this->instanceStartTimeSecondsUTC), second(this->instanceStartTimeSecondsUTC), this->instanceMaxIntensity, this->instanceEndTime - this->instanceStartTime);
     }
   }
 
@@ -105,13 +107,21 @@ private:
     this->instanceMaxIntensity = intensity;
     this->hasActiveInstance = true;
     this->instanceStartTime = millis();
-    this->instanceStartTimeSeconds = now();
+    this->instanceStartTimeSecondsUTC = now();
   }
 
   void stopInstance() {
     this->hasActiveInstance = false;
     this->instanceEndTime = millis();
     this->logInstance();
+
+    InstanceInfo info = {
+      this->instanceStartTimeSecondsUTC - UTCOFFSETINSECONDS,
+      this->instanceEndTime - this->instanceStartTime,
+      this->instanceMaxIntensity
+    };
+
+    esp_event_post_to(this->loopHandle, WATCHER_EVENT, WATCHER_INSTANCE, &info, sizeof(InstanceInfo), 0);
   }
 
   void trackInstance(float intensity) {
@@ -132,7 +142,9 @@ private:
   }
 
 public:
-  void start() {
+  void start(esp_event_loop_handle_t loopHandle) {
+    this->loopHandle = loopHandle;
+
     // Set initial brightness
     this->wake();
 

@@ -1,5 +1,8 @@
 #include "esp_event.h"
 
+#ifndef __constants_h__
+#define __constants_h__
+
 /* Screen */
 // Voltage range: 2500 - 3300
 #define SCREENOFFBRIGHTNESS 2500
@@ -29,14 +32,22 @@
 #define EVENTTIMEOUT 3 * 1000  // 3 seconds
 #define REWINDSTEPS 240 // ~2 seconds
 
+struct InstanceInfo {
+  time_t startTime;
+  unsigned long duration;
+  float intensity;
+};
+
 /* Config */
 #define WEBSERVER
 
 /* Events */
-#define IMU_CALIBRATE 1
-
-#ifndef __constants_h__
-#define __constants_h__
 ESP_EVENT_DECLARE_BASE(IMU_EVENT);
 ESP_EVENT_DEFINE_BASE(IMU_EVENT);
+ESP_EVENT_DECLARE_BASE(WATCHER_EVENT);
+ESP_EVENT_DEFINE_BASE(WATCHER_EVENT);
+
+#define IMU_CALIBRATE 1
+#define WATCHER_INSTANCE 2
+
 #endif

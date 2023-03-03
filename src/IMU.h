@@ -12,6 +12,12 @@ private:
   QueueHandle_t dataQueue;
   bool calibrationRequired = true;
 
+  static void handleCalibrationEvent(void *arg, esp_event_base_t base, int32_t id, void *eventData) {
+    Serial.println("Calibrating IMU");
+    IMU *imu = (IMU *)arg;
+    imu->calibrate();
+  }
+
   static void update(void *param) {
     IMU *imu = (IMU *)param;
 
@@ -56,7 +62,9 @@ public:
     this->calibrationRequired = true;
   }
 
-  void start(QueueHandle_t dataQueue) {
+  void start(esp_event_loop_handle_t loopHandle, QueueHandle_t dataQueue) {
+    esp_event_handler_register_with(loopHandle, IMU_EVENT, IMU_CALIBRATE, handleCalibrationEvent, this);
+
     this->dataQueue = dataQueue;
 
     // Init IMU and store calibration values

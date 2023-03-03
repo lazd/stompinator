@@ -12,12 +12,6 @@
 #include "WebServer.h"
 #endif
 
-void handleCalibrationEvent(void *arg, esp_event_base_t base, int32_t id, void *eventData) {
-  Serial.println("Calibrating IMU");
-  IMU *imu = (IMU *)arg;
-  imu->calibrate();
-}
-
 class Application {
 private:
 #ifdef WEBSERVER
@@ -37,6 +31,15 @@ private:
   // Store data to be recieved from IMU
   QueueHandle_t dataQueue;
 
+  esp_event_loop_handle_t loopHandle;
+
+  esp_event_loop_args_t loopArgs = {
+      .queue_size = 5,
+      .task_name = "eventLoop",
+      .task_priority = 3,
+      .task_stack_size = 4096,
+      .task_core_id = 1
+  };
 
 public:
   Application() {
@@ -53,24 +56,15 @@ public:
   void start() {
     this->dataQueue = xQueueCreate(IMUBUFFERSIZE, sizeof(float));
 
-    esp_event_loop_args_t loopArgs = {
-        .queue_size = 5,
-        .task_name = "eventLoop",
-        .task_priority = 3,
-        .task_stack_size = 1024,
-        .task_core_id = 1};
-
-    esp_event_loop_handle_t loopHandle;
-    esp_event_loop_create(&loopArgs, &loopHandle);
-    esp_event_handler_register_with(loopHandle, IMU_EVENT, IMU_CALIBRATE, handleCalibrationEvent, this->imu);
+    esp_event_loop_create(&this->loopArgs, &this->loopHandle);
 
     this->wifi->start();
     this->ntp->start();
-    this->imu->start(this->dataQueue);
+    this->imu->start(this->loopHandle, this->dataQueue);
     this->ui->start();
-    this->watcher->start();
+    this->watcher->start(this->loopHandle);
 #ifdef WEBSERVER
-    this->webServer->start(loopHandle);
+    this->webServer->start(this->loopHandle);
 #endif
   }
 

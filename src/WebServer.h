@@ -25,9 +25,9 @@ private:
   CircularBuffer<float, REWINDSTEPS> buffer;
   unsigned long lastUpdateTime = 0;
 
-  void notifyClients() {
+  void sendRealTimeData() {
     // Empty the buffer and send it to clients
-    String dataString = String();
+    String dataString = "u:";
     int i;
     for (i = 0; i < REWINDSTEPS && !buffer.isEmpty(); i++) {
       if (i != 0) {
@@ -36,6 +36,16 @@ private:
       dataString += String(buffer.shift(), DATAPRECISION);
     }
     buffer.clear();
+    ws->textAll(dataString);
+  }
+
+  void sendInstance(InstanceInfo *instanceInfo) {
+    String dataString = "i:";
+    dataString += instanceInfo->startTime;
+    dataString += ",";
+    dataString += instanceInfo->duration;
+    dataString += ",";
+    dataString += instanceInfo->intensity;
     ws->textAll(dataString);
   }
 
@@ -52,6 +62,12 @@ private:
   void initWebSocket() {
     ws->onEvent(std::bind(&WebServer::onEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
     server->addHandler(ws);
+  }
+
+  static void handleInstanceEvent(void *arg, esp_event_base_t base, int32_t id, void *eventData) {
+    WebServer *webServer = (WebServer *)arg;
+    InstanceInfo *instanceInfo = (InstanceInfo *)eventData;
+    webServer->sendInstance(instanceInfo);
   }
 
 public:
@@ -129,6 +145,8 @@ public:
   void start(esp_event_loop_handle_t loopHandle) {
     this->loopHandle = loopHandle;
 
+    esp_event_handler_register_with(loopHandle, WATCHER_EVENT, WATCHER_INSTANCE, handleInstanceEvent, this);
+
     server = new AsyncWebServer(80);
     ws = new AsyncWebSocket("/ws");
     Serial.printf("Server running on port %d and core %d\n", SERVERPORT, CONFIG_ASYNC_TCP_RUNNING_CORE);
@@ -176,8 +194,7 @@ public:
           Serial.printf("403: Forbidden file requested: %s\n", fileName);
           request->send(403);
         }
-      }
-      else {
+      } else {
         Serial.println("400: /data request missing download parameter");
         request->send(400);
       }
@@ -194,7 +211,7 @@ public:
 
     if (millis() - lastUpdateTime >= SERVERUPDATEINTERVAL) {
       ws->cleanupClients();
-      notifyClients();
+      sendRealTimeData();
       lastUpdateTime = millis();
     }
   }
