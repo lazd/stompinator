@@ -405,9 +405,13 @@ const char index_html[] PROGMEM = R"rawliteral(
       }
 
       onMessage(event) {
+        const [type, dataString] = event.data.split(':');
+        const data = dataString.split(',');
+
         this.dispatchEvent(new CustomEvent('data', {
           detail: {
-            data: event.data.split(',')
+            type,
+            data
           }
         }));
       }
@@ -670,9 +674,9 @@ const char index_html[] PROGMEM = R"rawliteral(
       drawFilePicker(fileList) {
         this.picker.innerHTML = '<option></option>';
         fileList.slice().reverse().forEach(file => {
-          const epochTime = Date.parse(file.name.replace(/log-(.*?).csv/, '$1'));
-          const date = new Date();
-          date.setTime(epochTime);
+          const dateString = file.name.replace(/log-(.*?).csv/, '$1');
+          const [YYYY, MM, DD] = dateString.split('-');
+          const date = new Date(YYYY, MM - 1, DD);
           this.picker.innerHTML += `
           <option value="${file.name}">${date.toDateString()}</option>`;
         });
@@ -710,7 +714,8 @@ const char index_html[] PROGMEM = R"rawliteral(
 
         const context = this;
 
-        d3.csv(`${this.server}data?download=${fileName}`,
+        // todo: cache this
+        d3.csv(`${this.server}data/${fileName}`,
           function (d) {
             return {
               time: d3.timeParse('%H:%M:%S')(`${date} ${d.time}`),
@@ -860,7 +865,14 @@ const char index_html[] PROGMEM = R"rawliteral(
       ui = new UI();
       client = new Client(window.server);
       client.addEventListener('data', (event) => {
-        ui.storeData(event.detail.data);
+        if (event.detail.type === 'u') {
+          ui.storeData(event.detail.data);
+        } else if (event.detail.type === 'i') {
+          const date = new Date(event.detail.data[0] * 1000);
+          const duration = parseInt(event.detail.data[1], 10);
+          const intensity = parseFloat(event.detail.data[2]);
+          console.log(`Stomp ${date}: ${intensity} for ${duration}`);
+        }
       });
 
       client.addEventListener('open', (event) => {
@@ -878,7 +890,6 @@ const char index_html[] PROGMEM = R"rawliteral(
 
       browser = new Browser(window.server);
     });
-
   </script>
 </body>
 
