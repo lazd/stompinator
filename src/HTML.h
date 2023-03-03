@@ -128,7 +128,6 @@ const char index_html[] PROGMEM = R"rawliteral(
       border: 0.25rem solid var(--dialog-border-color);
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
     }
 
     .dialog-header {
@@ -164,6 +163,10 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
 
     /* Graph */
+    svg {
+      display: block;
+    }
+
     .graphAxis line,
     .graphAxis path {
       stroke: var(--axis-color);
@@ -286,6 +289,43 @@ const char index_html[] PROGMEM = R"rawliteral(
 
       100% {
         outline-offset: 0.25rem;
+      }
+    }
+
+    @media only screen and (max-width: 600px) {
+      :root {
+        --heading-font-size: 1.5rem;
+        --rem: 14px;
+      }
+
+      body {
+        position: relative;
+        overflow: auto;
+      }
+
+      #browser-viewer {
+        min-height: 18rem;
+      }
+
+      #canvas {
+        min-height: 20rem;
+      }
+
+      .trends {
+        width: 100%;
+      }
+
+      .hallOfFame {
+        display: none;
+      }
+
+      #top {
+        height: auto;
+        flex-direction: column;
+      }
+
+      #bottom {
+        height: auto;
       }
     }
   </style>
@@ -470,6 +510,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 
       setCanvasSize() {
         this.canvas.width = window.innerWidth;
+        this.canvas.height = 0; // reset height to get a valid measurement
         this.canvas.height = this.canvas.parentElement.offsetHeight;
       }
 
@@ -597,7 +638,8 @@ const char index_html[] PROGMEM = R"rawliteral(
       CONTENTLENGTH = 26;
       server = window.location.hostname;
       currentFile = null;
-      resizeTimeout;
+      currentData = null;
+      currentDate = null;
 
       getApproximateEntryCount(size) {
         return (size - this.HEADERLENGTH) / this.CONTENTLENGTH;
@@ -625,14 +667,15 @@ const char index_html[] PROGMEM = R"rawliteral(
         });
 
         window.addEventListener('resize', () => {
-          this.graph.innerHTML = '';
-          clearTimeout(this.resizeTimeout);
-          this.resizeTimeout = setTimeout(() => this.drawGraph(this.currentFile), 100);
+          if (this.currentData) {
+            this.graph.innerHTML = '';
+            this.drawGraph();
+          }
         });
 
         // Update every minute
         setInterval(() => {
-          this.drawGraph(this.currentFile);
+          this.fetchData(this.currentFile);
         }, 1000 * 60);
       }
 
@@ -643,7 +686,7 @@ const char index_html[] PROGMEM = R"rawliteral(
           if (fileList.length) {
             const file = fileList[fileList.length - 1];
             if (file.size < 1024 * 1024) {
-              this.drawGraph(file.name);
+              this.fetchData(file.name);
             }
           }
         }
@@ -672,7 +715,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       }
 
       drawFilePicker(fileList) {
-        this.picker.innerHTML = '<option></option>';
+        this.picker.innerHTML = '';
         fileList.slice().reverse().forEach(file => {
           const dateString = file.name.replace(/log-(.*?).csv/, '$1');
           const [YYYY, MM, DD] = dateString.split('-');
@@ -687,20 +730,44 @@ const char index_html[] PROGMEM = R"rawliteral(
         return `${(d % 12) || 12}${amPm}`;
       }
 
-      drawGraph(fileName) {
+      fetchData(fileName) {
         if (!fileName) {
           return;
         }
 
         this.currentFile = fileName;
-        const date = fileName.replace(/log-(\d{4}-\d{2}-\d{2}).csv/, '$1');
+        this.currentDate = fileName.replace(/log-(\d{4}-\d{2}-\d{2}).csv/, '$1');
 
         this.picker.value = fileName;
 
+        d3.csv(
+          `${this.server}data/${fileName}`,
+          (d) => {
+            return {
+              time: d3.timeParse('%H:%M:%S')(`${this.currentDate} ${d.time}`),
+              hour: parseInt(d.time.split(':')[0]),
+              intensity: d.intensity,
+              duration: d.duration
+            }
+          },
+          (data) => {
+            // ignore impossible outliers
+            data = data.filter(item => {
+              return item.intensity < 3;
+            });
+
+            this.currentData = data;
+
+            this.drawGraph();
+          }
+        );
+      }
+
+      drawGraph() {
         var totalWidth = this.graph.offsetWidth;
         var totalHeight = this.graph.offsetHeight;
 
-        var margin = { top: 20, right: 20, bottom: 40, left: 70 },
+        var margin = { top: 20, right: 10, bottom: 40, left: 70 },
           width = totalWidth - margin.left - margin.right,
           height = totalHeight - margin.top - margin.bottom;
 
@@ -712,149 +779,129 @@ const char index_html[] PROGMEM = R"rawliteral(
           .attr('transform',
             'translate(' + margin.left + ',' + margin.top + ')');
 
-        const context = this;
+        const topTen = this.currentData.slice().sort((a, b) => {
+          return b.intensity - a.intensity;
+        }).slice(0, 10);
 
-        // todo: cache this
-        d3.csv(`${this.server}data/${fileName}`,
-          function (d) {
-            return {
-              time: d3.timeParse('%H:%M:%S')(`${date} ${d.time}`),
-              hour: parseInt(d.time.split(':')[0]),
-              intensity: d.intensity,
-              duration: d.duration
-            }
-          },
-          function (data) {
-            // ignore impossible outliers
-            data = data.filter(item => {
-              return item.intensity < 3;
-            });
-
-            const topTen = data.slice().sort((a, b) => {
-              return b.intensity - a.intensity;
-            }).slice(0, 10);
-
-            context.hallOfFame.innerHTML = '';
-            for (let item of topTen) {
-              context.hallOfFame.innerHTML += `
+        this.hallOfFame.innerHTML = '';
+        for (let item of topTen) {
+          this.hallOfFame.innerHTML += `
                 <tr>
-                  <!-- <td>${date}</td> -->
-                  <td>${context.shortHour(item.hour)}</td>
+                  <td>${this.shortHour(item.hour)}</td>
                   <td>${parseFloat(item.intensity).toFixed(2)}</td>
                   <td>${item.duration}ms</td>
                 </tr>
               `;
+        }
+
+        const hours = {};
+        this.currentData.forEach(item => {
+          const hour = hours[item.hour] = hours[item.hour] || {
+            hour: item.hour,
+            low: 0,
+            med: 0,
+            high: 0
+          };
+
+          if (item.intensity >= 0.1 && item.intensity < 0.15) {
+            hour.low++;
+          }
+          else if (item.intensity >= 0.15 && item.intensity < 0.20) {
+            hour.med++;
+          }
+          else if (item.intensity >= 0.20) {
+            hour.high++;
+          }
+        });
+
+        const data = Object.values(hours);
+        data.columns = Object.keys(data[0]);
+
+        const maxSteps = data.reduce((p, c) => {
+          const total = c.low + c.med + c.high;
+          return total > p ? total : p;
+        }, 0);
+
+        // List of subgroups = header of the csv files
+        var subgroups = data.columns.slice(1);
+
+        // Group by hour
+        var groups = d3.map(data, function (d) { return (d.hour) }).keys();
+
+        // Add X axis
+        var x = d3.scaleBand()
+          .domain(Array.from(Array(24)).map((v, i) => i))
+          .range([0, width])
+          .padding([0.2]);
+
+        svg.append('g')
+          .attr('transform', 'translate(0,' + height + ')')
+          .attr('class', 'graphAxis graphAxis-x')
+          .call(d3.axisBottom(x).tickSizeOuter(0).tickFormat(this.shortHour));
+
+        // Add Y axis
+        var y = d3.scaleLinear()
+          .domain([0, maxSteps])
+          .range([height, 0]);
+
+        svg.append('g')
+          .attr('class', 'graphAxis graphAxis-y')
+          .call(d3.axisLeft(y)
+            .tickValues(y.ticks()
+              .filter(tick => Number.isInteger(tick)))
+            .tickFormat(d3.format('d')));
+
+        // Color palette: one color per subgroup
+        var color = d3.scaleOrdinal()
+          .domain(subgroups)
+          .range(['var(--color-yellow)', 'var(--color-orange)', 'var(--color-red)'])
+
+        // Stack the data per subgroup
+        var stackedData = d3.stack()
+          .keys(subgroups)
+          (data);
+
+        // Show the bars
+        svg.append('g')
+          .selectAll('g')
+          // Enter in the stack data = loop key per key = group per group
+          .data(stackedData)
+          .enter().append('g')
+          .attr('fill', function (d) { return color(d.key); })
+          .selectAll('rect')
+          // enter a second time = loop subgroup per subgroup to add all rectangles
+          .data(function (d) { return d; })
+          .enter().append('rect')
+          .attr('x', function (d) { return x(d.data.hour); })
+          .attr('y', function (d) { return y(d[1]); })
+          .attr('height', function (d) { return y(d[0]) - y(d[1]); })
+          .attr('width', x.bandwidth());
+
+        // Hide ticks if necessary
+        const ticks = document.querySelectorAll('.graphAxis-x .tick');
+        const tickPadding = 8;
+        let largestTick = 0;
+        ticks.forEach(tick => {
+          const rect = tick.getBoundingClientRect();
+          largestTick = rect.width > largestTick ? rect.width : largestTick
+        });
+
+        if (ticks.length) {
+          let lastRect = ticks[0].getBoundingClientRect();
+          for (let tick of Array.prototype.slice.call(ticks, 1)) {
+            const currentRect = tick.getBoundingClientRect();
+            const lastTickCenter = lastRect.right - (lastRect.right - lastRect.left) / 2;
+            const curTickCenter = currentRect.right - (currentRect.right - currentRect.left) / 2;
+            const overlap = (lastTickCenter + largestTick) > curTickCenter;
+            if (overlap) {
+              const text = tick.querySelector('text');
+              text.style.display = 'none';
             }
-
-            const hours = {};
-            data.forEach(item => {
-              const hour = hours[item.hour] = hours[item.hour] || {
-                hour: item.hour,
-                low: 0,
-                med: 0,
-                high: 0
-              };
-
-              if (item.intensity >= 0.1 && item.intensity < 0.15) {
-                hour.low++;
-              }
-              else if (item.intensity >= 0.15 && item.intensity < 0.20) {
-                hour.med++;
-              }
-              else if (item.intensity >= 0.20) {
-                hour.high++;
-              }
-            });
-
-            data = Object.values(hours);
-            data.columns = Object.keys(data[0]);
-
-            const maxSteps = data.reduce((p, c) => {
-              const total = c.low + c.med + c.high;
-              return total > p ? total : p;
-            }, 0);
-
-            // List of subgroups = header of the csv files
-            var subgroups = data.columns.slice(1);
-
-            // Group by hour
-            var groups = d3.map(data, function (d) { return (d.hour) }).keys();
-
-            // Add X axis
-            var x = d3.scaleBand()
-              .domain(Array.from(Array(24)).map((v, i) => i))
-              .range([0, width])
-              .padding([0.2]);
-
-            svg.append('g')
-              .attr('transform', 'translate(0,' + height + ')')
-              .attr('class', 'graphAxis graphAxis-x')
-              .call(d3.axisBottom(x).tickSizeOuter(0).tickFormat(context.shortHour));
-
-            // Add Y axis
-            var y = d3.scaleLinear()
-              .domain([0, maxSteps])
-              .range([height, 0]);
-
-            svg.append('g')
-              .attr('class', 'graphAxis graphAxis-y')
-              .call(d3.axisLeft(y)
-                .tickValues(y.ticks()
-                  .filter(tick => Number.isInteger(tick)))
-                .tickFormat(d3.format('d')));
-
-            // Color palette: one color per subgroup
-            var color = d3.scaleOrdinal()
-              .domain(subgroups)
-              .range(['var(--color-yellow)', 'var(--color-orange)', 'var(--color-red)'])
-
-            // Stack the data per subgroup
-            var stackedData = d3.stack()
-              .keys(subgroups)
-              (data);
-
-            // Show the bars
-            svg.append('g')
-              .selectAll('g')
-              // Enter in the stack data = loop key per key = group per group
-              .data(stackedData)
-              .enter().append('g')
-              .attr('fill', function (d) { return color(d.key); })
-              .selectAll('rect')
-              // enter a second time = loop subgroup per subgroup to add all rectangles
-              .data(function (d) { return d; })
-              .enter().append('rect')
-              .attr('x', function (d) { return x(d.data.hour); })
-              .attr('y', function (d) { return y(d[1]); })
-              .attr('height', function (d) { return y(d[0]) - y(d[1]); })
-              .attr('width', x.bandwidth());
-
-            // Hide ticks if necessary
-            const ticks = document.querySelectorAll('.graphAxis-x .tick');
-            const tickPadding = 8;
-            let largestTick = 0;
-            ticks.forEach(tick => {
-              const rect = tick.getBoundingClientRect();
-              largestTick = rect.width > largestTick ? rect.width : largestTick
-            });
-
-            if (ticks.length) {
-              let lastRect = ticks[0].getBoundingClientRect();
-              for (let tick of Array.prototype.slice.call(ticks, 1)) {
-                const currentRect = tick.getBoundingClientRect();
-                const lastTickCenter = lastRect.right - (lastRect.right - lastRect.left) / 2;
-                const curTickCenter = currentRect.right - (currentRect.right - currentRect.left) / 2;
-                const overlap = (lastTickCenter + largestTick) > curTickCenter;
-                if (overlap) {
-                  const text = tick.querySelector('text');
-                  text.style.display = 'none';
-                }
-                else {
-                  lastRect = currentRect;
-                }
-              }
+            else {
+              lastRect = currentRect;
             }
-          });
+          }
+        }
       }
     }
 
