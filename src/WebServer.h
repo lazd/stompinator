@@ -17,9 +17,10 @@
 
 class WebServer {
 private:
-  // bool ledState;
   AsyncWebServer *server;
   AsyncWebSocket *ws;
+
+  esp_event_loop_handle_t loopHandle;
 
   CircularBuffer<float, REWINDSTEPS> buffer;
   unsigned long lastUpdateTime = 0;
@@ -42,9 +43,8 @@ private:
     AwsFrameInfo *info = (AwsFrameInfo *)arg;
     if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
       data[len] = 0;
-      if (strcmp((char *)data, "toggle") == 0) {
-        // ledState = !ledState;
-        // notifyClients();
+      if (strcmp((char *)data, "calibrate") == 0) {
+        esp_event_post_to(this->loopHandle, IMU_EVENT, IMU_CALIBRATE, 0, 0, 0);
       }
     }
   }
@@ -126,7 +126,9 @@ public:
     return fileContents;
   }
 
-  void start() {
+  void start(esp_event_loop_handle_t loopHandle) {
+    this->loopHandle = loopHandle;
+
     server = new AsyncWebServer(80);
     ws = new AsyncWebSocket("/ws");
     Serial.printf("Server running on port %d and core %d\n", SERVERPORT, CONFIG_ASYNC_TCP_RUNNING_CORE);

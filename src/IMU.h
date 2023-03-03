@@ -10,6 +10,7 @@
 class IMU {
 private:
   QueueHandle_t dataQueue;
+  bool calibrationRequired = true;
 
   static void update(void *param) {
     IMU *imu = (IMU *)param;
@@ -24,14 +25,24 @@ private:
 
     // Get calibration
     float baseAccZ;
-    SMA<CALIBRATIONSMASIZE, float, float> baseAccZAverage = {1};
-    for (int i = 0; i < CALIBRATIONSMASIZE; i++) {
-      delay(TICKTIME);
-      M5.IMU.getAccelData(&accX, &accY, &accZ);
-      baseAccZ = baseAccZAverage(accZ) - 1;
-    }
+
+    auto calibrate = [&]() {
+      SMA<CALIBRATIONSMASIZE, float, float> baseAccZAverage = {1};
+      for (int i = 0; i < CALIBRATIONSMASIZE; i++) {
+        if (i != 0) {
+          vTaskDelay(pdMS_TO_TICKS(TICKTIME));
+        }
+        M5.IMU.getAccelData(&accX, &accY, &accZ);
+        baseAccZ = baseAccZAverage(accZ) - 1;
+      }
+    };
 
     while (true) {
+      if (imu->calibrationRequired) {
+        calibrate();
+        imu->calibrationRequired = false;
+      }
+
       // Pull IMU data and offset by calibration value
       M5.IMU.getAccelData(&accX, &accY, &accZ);
       float intensity = abs(1 - accZAverage(abs(accZ - baseAccZ))) * SENSITIVITY;
@@ -41,6 +52,10 @@ private:
   }
 
 public:
+  void calibrate() {
+    this->calibrationRequired = true;
+  }
+
   void start(QueueHandle_t dataQueue) {
     this->dataQueue = dataQueue;
 

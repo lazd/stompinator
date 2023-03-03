@@ -1,3 +1,5 @@
+#include "esp_event.h"
+
 /* Screen */
 // Voltage range: 2500 - 3300
 #define SCREENOFFBRIGHTNESS 2500
@@ -29,3 +31,12 @@
 
 /* Config */
 #define WEBSERVER
+
+/* Events */
+#define IMU_CALIBRATE 1
+
+#ifndef __constants_h__
+#define __constants_h__
+ESP_EVENT_DECLARE_BASE(IMU_EVENT);
+ESP_EVENT_DEFINE_BASE(IMU_EVENT);
+#endif
