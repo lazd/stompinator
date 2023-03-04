@@ -421,7 +421,6 @@ const char index_html[] PROGMEM = R"rawliteral(
       onMessage(event) {
         const [type, dataString] = event.data.split(':');
         const data = dataString.split(',');
-
         this.dispatchEvent(new CustomEvent('data', {
           detail: {
             type,
@@ -437,11 +436,11 @@ const char index_html[] PROGMEM = R"rawliteral(
 
     class UI {
       COLORMULTIPLIER = 3;
-      MINBUFFERSIZE = 120;
+      MINBUFFERSIZE = 6;
       TEXTDRAWINTERVAL = 250;
       SEGMENTSIZE = 6;
       SEGMENTSPACING = 2;
-      DATAPOINTERPERTICK = 6;
+      DATAPOINTERPERTICK = 1;
       SKIPFRAMES = 2;
       SCREENSHAKEFACTOR = 10;
 
@@ -564,7 +563,7 @@ const char index_html[] PROGMEM = R"rawliteral(
             }
 
             this.buffer.shift();
-            console.warn('Dropping a frame');
+            console.info('Dropping a frame');
           }
 
           if (time - this.lastTextDrawTime >= this.TEXTDRAWINTERVAL) {

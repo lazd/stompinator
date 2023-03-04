@@ -13,7 +13,8 @@
 
 #define SERVERPORT 80
 #define DATAPRECISION 6
-#define SERVERUPDATEINTERVAL 450
+#define SERVERUPDATEINTERVAL 225
+#define DATAPOINTSPERFRAME 6
 
 class WebServer {
 private:
@@ -26,16 +27,19 @@ private:
   unsigned long lastUpdateTime = 0;
 
   void sendRealTimeData() {
-    // Empty the buffer and send it to clients
     String dataString = "u:";
-    int i;
-    for (i = 0; i < REWINDSTEPS && !buffer.isEmpty(); i++) {
+    for (int i = 0; i < REWINDSTEPS && buffer.size() >= DATAPOINTSPERFRAME; i+= DATAPOINTSPERFRAME) {
       if (i != 0) {
         dataString += ",";
       }
-      dataString += String(buffer.shift(), DATAPRECISION);
+
+      // For each frame, just take the maximum value encountered
+      float maxIntensity = 0;
+      for (int j = 0; j < DATAPOINTSPERFRAME; j++) {
+        maxIntensity = max(buffer.shift(), maxIntensity);
+      }
+      dataString += String(maxIntensity, DATAPRECISION);
     }
-    buffer.clear();
     ws->textAll(dataString);
   }
 
