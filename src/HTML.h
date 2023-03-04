@@ -108,6 +108,14 @@ const char index_html[] PROGMEM = R"rawliteral(
       position: absolute;
       left: 0.5rem;
       bottom: 0.25rem;
+      font-size: 2rem;
+      opacity: 1;
+      transition: color 250ms linear;
+    }
+
+    #realtimevalue.fadeOut {
+      transition: opacity 3s linear, color 250ms linear;
+      opacity: 0;
     }
 
     #browser {
@@ -446,7 +454,6 @@ const char index_html[] PROGMEM = R"rawliteral(
 
       running = true;
       lastUpdate = 0;
-      lastTextDrawTime = 0;
       frameSkip = 0;
 
       constructor() {
@@ -517,6 +524,16 @@ const char index_html[] PROGMEM = R"rawliteral(
         this.running = false;
       }
 
+      updateText(intensity) {
+        this.text.classList.remove('fadeOut');
+        this.text.innerText = parseFloat(intensity).toFixed(2);
+        this.text.style.color = this.interpolateColor(intensity);
+        clearTimeout(this.textTimeout);
+        this.textTimeout = setTimeout(() => {
+          this.text.classList.add('fadeOut');
+        }, 1000);
+      }
+
       shakeScreen(intensity) {
         if (intensity < 0.1) {
           document.body.style.transform = '';
@@ -564,11 +581,6 @@ const char index_html[] PROGMEM = R"rawliteral(
 
             this.buffer.shift();
             console.info('Dropping a frame');
-          }
-
-          if (time - this.lastTextDrawTime >= this.TEXTDRAWINTERVAL) {
-            this.text.innerText = parseFloat(this.drawBuffer[0]).toFixed(3);
-            this.lastTextDrawTime = time;
           }
 
           this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -899,7 +911,8 @@ const char index_html[] PROGMEM = R"rawliteral(
           const date = new Date(event.detail.data[0] * 1000);
           const duration = parseInt(event.detail.data[1], 10);
           const intensity = parseFloat(event.detail.data[2]);
-          console.log(`Stomp ${date}: ${intensity} for ${duration}`);
+          // console.log(`Stomp ${date}: ${intensity} for ${duration}`);
+          ui.updateText(intensity);
         }
       });
 
