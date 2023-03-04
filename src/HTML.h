@@ -570,7 +570,7 @@ const char index_html[] PROGMEM = R"rawliteral(
           const data = this.buffer.slice(0, framesPerTick);
 
           // Drop a frame when the buffer gets too big
-          if (this.buffer.length > this.MINBUFFERSIZE * 2) {
+          if (this.buffer.length > this.MINBUFFERSIZE * 2.5) {
             // If we've ended up in a state where we've got a gigantic queue of useless data, just start over
             if (this.buffer.length > this.MINBUFFERSIZE * 10) {
               console.warn('Buffer is enormous, starting fresh a frame');
@@ -650,7 +650,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         this.picker.addEventListener('change', (event) => {
           const select = event.target.closest('select');
           if (select) {
-            this.drawGraph(select.value);
+            this.fetchData(select.value);
             select.blur();
           }
         });
