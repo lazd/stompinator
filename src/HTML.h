@@ -292,40 +292,14 @@ const char index_html[] PROGMEM = R"rawliteral(
       }
     }
 
-    @media only screen and (max-width: 600px) {
+    @media only screen and (max-width: 700px) {
       :root {
         --heading-font-size: 1.5rem;
         --rem: 14px;
       }
 
-      body {
-        position: relative;
-        overflow: auto;
-      }
-
-      #browser-viewer {
-        min-height: 18rem;
-      }
-
-      #canvas {
-        min-height: 20rem;
-      }
-
-      .trends {
-        width: 100%;
-      }
-
       .hallOfFame {
         display: none;
-      }
-
-      #top {
-        height: auto;
-        flex-direction: column;
-      }
-
-      #bottom {
-        height: auto;
       }
     }
   </style>
@@ -581,6 +555,14 @@ const char index_html[] PROGMEM = R"rawliteral(
 
           // Drop a frame when the buffer gets too big
           if (this.buffer.length > this.MINBUFFERSIZE * 2) {
+            // If we've ended up in a state where we've got a gigantic queue of useless data, just start over
+            if (this.buffer.length > this.MINBUFFERSIZE * 10) {
+              console.warn('Buffer is enormous, starting fresh a frame');
+              this.buffer.length = 0;
+              this.raf();
+              return;
+            }
+
             this.buffer.shift();
             console.warn('Dropping a frame');
           }
