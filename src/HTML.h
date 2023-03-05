@@ -522,6 +522,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 
       stop() {
         this.running = false;
+        this.buffer.length = 0;
       }
 
       updateText(intensity) {
@@ -622,7 +623,8 @@ const char index_html[] PROGMEM = R"rawliteral(
       }
 
       raf() {
-        window.requestAnimationFrame((time) => this.update(time));
+        window.cancelAnimationFrame(this.rafRequsetId);
+        this.rafRequsetId = window.requestAnimationFrame((time) => this.update(time));
       }
     }
 
@@ -911,7 +913,6 @@ const char index_html[] PROGMEM = R"rawliteral(
           const date = new Date(event.detail.data[0] * 1000);
           const duration = parseInt(event.detail.data[1], 10);
           const intensity = parseFloat(event.detail.data[2]);
-          // console.log(`Stomp ${date}: ${intensity} for ${duration}`);
           ui.updateText(intensity);
         }
       });
