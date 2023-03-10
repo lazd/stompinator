@@ -5,22 +5,51 @@
 #include <WiFi.h>
 #include "WiFiSecret.h"
 
+#define WIFICHECKTIME 60 * 1000
+
 class WiFiManager {
 public:
-  void start() {
+  unsigned long checkTime = millis();
+
+  void connect() {
     M5.Lcd.printf("Connecting to %s\n", SSID);
+    Serial.printf("Connecting to %s\n", SSID);
+    WiFi.disconnect(true);
+    WiFi.persistent(false);
     WiFi.setAutoReconnect(true);
+    WiFi.mode(WIFI_STA);
     WiFi.begin(SSID, PASSPHRASE);
-    while (WiFi.status() != WL_CONNECTED) {
+  }
+
+  void reconnect() {
+    Serial.println("Reconnecting...");
+    M5.Lcd.println("Reconnecting...");
+    this->connect();
+  }
+
+  void start() {
+    this->connect();
+
+    while (!WiFi.isConnected()) {
       M5.Lcd.print(".");
       delay(500);
     }
-    if(WiFi.getSleep() == true) {
-      WiFi.setSleep(false);
-      Serial.println("WiFi sleep disabled");
-    }
+
     M5.Lcd.printf("\nIP %s\n", WiFi.localIP().toString().c_str());
     Serial.printf("IP %s\n", WiFi.localIP().toString().c_str());
+  }
+
+  void update() {
+    if (millis() - this->checkTime > WIFICHECKTIME) {
+      this->checkTime = millis();
+      if (!WiFi.isConnected()) {
+        // Just reboot, reconnecting has been flaky
+        Serial.println("WiFi disconnected, rebooting");
+        M5.Lcd.println("WiFi disconnected, rebooting");
+        delay(1000);
+        ESP.restart();
+      }
+    }
   }
 };
 

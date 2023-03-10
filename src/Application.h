@@ -81,6 +81,7 @@ public:
 #ifdef WEBSERVER
     webServer->update(this->data, this->dataSize);
 #endif
+    wifi->update();
   }
 };
 
