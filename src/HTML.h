@@ -8,6 +8,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 <head>
   <title>Stompinator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf8">
   <link rel="icon" href="data:,">
   <link href="https://fonts.cdnfonts.com/css/v5-prophit" rel="stylesheet">
   <style>
@@ -142,7 +143,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       display: flex;
       flex-direction: row;
       align-items: center;
-      gap: 1rem;
+      gap: 0.25rem;
       margin: 0;
       white-space: nowrap;
       background: var(--dialog-header-color);
@@ -220,7 +221,12 @@ const char index_html[] PROGMEM = R"rawliteral(
 
     /* button */
     select,
+    .button,
     button {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
       appearance: none;
       background-color: var(--button-color);
       border: var(--button-border-width) solid var(--button-border-color);
@@ -237,17 +243,20 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
 
     select:focus,
+    .button:focus,
     button:focus {
       outline: none;
     }
 
     select:focus-visible,
+    .button:focus-visible,
     button:focus-visible {
       outline: 0.25rem ridge var(--color-orange);
       animation: outline-throb 500ms ease-in-out infinite alternate;
     }
 
     select:hover,
+    .button:hover,
     button:hover {
       cursor: pointer;
       --button-border-color: var(--button-border-color-hover);
@@ -255,11 +264,13 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
 
     select:active,
+    .button:active,
     button:active {
       box-shadow: var(--button-press-distance) var(--button-press-distance) var(--color-void) inset;
       background: var(--button-color);
     }
 
+    .button:active,
     button:active {
       padding-top: var(--button-press-distance);
       padding-left: calc(var(--button-padding) + var(--button-press-distance));
@@ -273,8 +284,8 @@ const char index_html[] PROGMEM = R"rawliteral(
       --select-triangle-y-position: 0.625rem;
       padding-right: 2rem;
       background-image:
-        linear-gradient(45deg, transparent 50%, var(--color-void) 50%),
-        linear-gradient(135deg, var(--color-void) 50%, transparent 50%),
+        linear-gradient(45deg, transparent 50%, var(--color-white) 50%),
+        linear-gradient(135deg, var(--color-white) 50%, transparent 50%),
         linear-gradient(to right, var(--button-border-color), var(--button-border-color));
 
       background-position:
@@ -334,7 +345,9 @@ const char index_html[] PROGMEM = R"rawliteral(
 
     <div class="dialog trends">
       <div class="dialog-header">
-        <h2>trends</h2><select id="browser-picker"></select>
+        <h2>trends</h2>
+        <select id="browser-picker"></select>
+        <a id="browser-download" download="" class="button" href="#">⬇</a>
       </div>
       <div class="dialog-content">
         <div id="browser">
@@ -347,8 +360,9 @@ const char index_html[] PROGMEM = R"rawliteral(
   <div id="bottom">
     <div class="dialog liveData">
       <div class="dialog-header">
-        <h2>live data</h2><button
-          onclick="this.dispatchEvent(new Event('calibrate', { bubbles: true }))">calibrate</button>
+        <h2>live data</h2>
+        <button onclick="this.dispatchEvent(new CustomEvent('sendMessage', { bubbles: true, detail: { message: 'calibrate' }}))">calibrate</button>
+        <button onclick="this.dispatchEvent(new CustomEvent('sendMessage', { bubbles: true, detail: { message: 'restart' }}))">restart</button>
       </div>
       <div class="dialog-content">
         <span id="realtimevalue"></span>
@@ -645,6 +659,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         this.el = document.getElementById('browser');
         this.picker = document.getElementById('browser-picker');
         this.graph = document.getElementById('browser-viewer');
+        this.downloadButton = document.getElementById('browser-download');
         this.hallOfFame = document.getElementById('hallOfFame');
 
         void this.update();
@@ -730,13 +745,16 @@ const char index_html[] PROGMEM = R"rawliteral(
           return;
         }
 
+        const url = `${this.server}data/${fileName}`;
+
         this.currentFile = fileName;
         this.currentDate = fileName.replace(/log-(\d{4}-\d{2}-\d{2}).csv/, '$1');
-
+        this.downloadButton.href = url;
+        this.downloadButton.setAttribute('download', fileName);
         this.picker.value = fileName;
 
         d3.csv(
-          `${this.server}data/${fileName}`,
+          url,
           (d) => {
             return {
               time: d3.timeParse('%H:%M:%S')(`${this.currentDate} ${d.time}`),
@@ -925,9 +943,9 @@ const char index_html[] PROGMEM = R"rawliteral(
         ui.stop();
       });
 
-      window.addEventListener('calibrate', () => {
-        console.log('Requesting calibration');
-        client.sendMessage('calibrate');
+      window.addEventListener('sendMessage', (event) => {
+        console.log(`Sending message: ${event.detail.message}`);
+        client.sendMessage(event.detail.message);
       });
 
       browser = new Browser(window.server);

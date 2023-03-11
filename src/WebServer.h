@@ -3,10 +3,10 @@
 
 #define CONFIG_ASYNC_TCP_RUNNING_CORE 1
 
-#include <M5Core2.h>
 #include <AsyncTCP.h>
 #include <CircularBuffer.h>
 #include <ESPAsyncWebServer.h>
+#include <M5Core2.h>
 
 #include "Constants.h"
 #include "HTML.h"
@@ -28,7 +28,7 @@ private:
 
   void sendRealTimeData() {
     String dataString = "u:";
-    for (int i = 0; i < REWINDSTEPS && buffer.size() >= DATAPOINTSPERFRAME; i+= DATAPOINTSPERFRAME) {
+    for (int i = 0; i < REWINDSTEPS && buffer.size() >= DATAPOINTSPERFRAME; i += DATAPOINTSPERFRAME) {
       if (i != 0) {
         dataString += ",";
       }
@@ -59,6 +59,10 @@ private:
       data[len] = 0;
       if (strcmp((char *)data, "calibrate") == 0) {
         esp_event_post_to(this->loopHandle, IMU_EVENT, IMU_CALIBRATE, 0, 0, 0);
+      }
+      if (strcmp((char *)data, "restart") == 0) {
+        delay(1000);
+        ESP.restart();
       }
     }
   }
