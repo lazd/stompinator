@@ -277,6 +277,12 @@ const char index_html[] PROGMEM = R"rawliteral(
       padding-right: calc(var(--button-padding) - var(--button-press-distance));
     }
 
+    .hiddenInput {
+      visibility: hidden;
+      width: 0;
+      height: 0;
+    }
+
     select {
       --select-box-size: 1.75rem;
       --select-triangle-size: 0.5rem;
@@ -317,6 +323,9 @@ const char index_html[] PROGMEM = R"rawliteral(
         --rem: 14px;
       }
 
+      #browser-download,
+      #browser-upload,
+      #browser-delete,
       .hallOfFame {
         display: none;
       }
@@ -348,6 +357,13 @@ const char index_html[] PROGMEM = R"rawliteral(
         <h2>trends</h2>
         <select id="browser-picker"></select>
         <a id="browser-download" download="" class="button" href="#">⬇</a>
+        <form method="POST" id="browser-upload" enctype="multipart/form-data">
+          <label class="button">
+            ⬆
+            <input class="hiddenInput" name="file" type="file" onchange="this.form.submit()">
+          </label>
+        </form>
+        <button id="browser-delete" onclick="this.dispatchEvent(new CustomEvent('delete', { bubbles: true }))">❌</button>
       </div>
       <div class="dialog-content">
         <div id="browser">
@@ -373,7 +389,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 
   <script src="https://d3js.org/d3.v4.js"></script>
   <script>
-    function fetch(url) {
+    function fetch(url, method = "GET") {
       return new Promise((resolve, reject) => {
         const req = new XMLHttpRequest();
         req.timeout = 5000;
@@ -398,7 +414,7 @@ const char index_html[] PROGMEM = R"rawliteral(
           reject(new Error('Request timed out'));
         });
 
-        req.open('GET', url);
+        req.open(method, url);
         req.send();
       });
     }
@@ -659,8 +675,11 @@ const char index_html[] PROGMEM = R"rawliteral(
         this.el = document.getElementById('browser');
         this.picker = document.getElementById('browser-picker');
         this.graph = document.getElementById('browser-viewer');
+        this.uploadForm = document.getElementById('browser-upload');
         this.downloadButton = document.getElementById('browser-download');
         this.hallOfFame = document.getElementById('hallOfFame');
+
+        this.uploadForm.action = `${this.server}upload`;
 
         void this.update();
 
@@ -674,6 +693,13 @@ const char index_html[] PROGMEM = R"rawliteral(
 
         this.el.addEventListener('focusin', (event) => {
           event.target.scrollIntoView();
+        });
+
+        window.addEventListener('delete', () => {
+          if (confirm(`Are you sure you want to delete ${this.currentFile}?`)) {
+            const url = `${this.server}data/${this.currentFile}`;
+            fetch(url, 'DELETE');
+          }
         });
 
         window.addEventListener('resize', () => {

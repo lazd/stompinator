@@ -147,17 +147,55 @@ public:
     initWebSocket();
 
     // Route for root / web page
-    server->on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
+    server->on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(200, "text/html", index_html);
     });
 
     server->on("/data.json", HTTP_GET, [this](AsyncWebServerRequest *request) {
       // Root listing
-      AsyncWebServerResponse *response = request->beginResponse(200, "application/json", getDataFiles());
+      AsyncWebServerResponse *response = request->beginResponse(200, "application/json", this->getDataFiles());
       request->send(response);
     });
 
     server->serveStatic("/data/", SD, "/");
+
+    // Handle uploads
+    server->on("/upload", HTTP_POST, [this](AsyncWebServerRequest *request) {
+      request->send(200);
+    }, [this](AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final) {
+      if (!index) {
+        Serial.println("Receiving upload from: " + request->client()->remoteIP().toString());
+        // open the file on first call and store the file handle in the request object
+        request->_tempFile = SD.open("/" + filename, "w");
+      }
+
+      if (len) {
+        // stream the incoming chunk to the opened file
+        request->_tempFile.write(data, len);
+      }
+
+      if (final) {
+        // close the file handle as the upload is now done
+        request->_tempFile.close();
+        Serial.println("Upload complete: " + String(filename) + " (size: " + String(index + len) + ")");
+      }
+    });
+
+    server->on("^\\/data\\/(.*?)$", HTTP_DELETE, [this](AsyncWebServerRequest *request) {
+      String fileName = request->pathArg(0);
+      Serial.printf("Delete request for %s from: %s\n", fileName.c_str(), request->client()->remoteIP().toString().c_str());
+      if (fileName.startsWith("log-") && SD.exists("/" + fileName)) {
+        SD.remove("/" + fileName);
+        request->send(200);
+      }
+      else {
+        request->send(404);
+      }
+    });
+
+    server->onNotFound([](AsyncWebServerRequest *request) {
+      request->send(404);
+    });
 
     // Start server
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
