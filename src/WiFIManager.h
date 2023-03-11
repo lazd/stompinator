@@ -9,14 +9,12 @@
 
 class WiFiManager {
 public:
-  unsigned long checkTime = millis();
+  unsigned long lastCheckTime = millis();
 
   void connect() {
     M5.Lcd.printf("Connecting to %s\n", SSID);
     Serial.printf("Connecting to %s\n", SSID);
-    WiFi.disconnect(true);
-    WiFi.persistent(false);
-    WiFi.setAutoReconnect(true);
+
     WiFi.mode(WIFI_STA);
     WiFi.begin(SSID, PASSPHRASE);
   }
@@ -40,14 +38,14 @@ public:
   }
 
   void update() {
-    if (millis() - this->checkTime > WIFICHECKTIME) {
-      this->checkTime = millis();
+    if (millis() - this->lastCheckTime > WIFICHECKTIME) {
+      this->lastCheckTime = millis();
       if (!WiFi.isConnected()) {
         // Just reboot, reconnecting has been flaky
         Serial.println("WiFi disconnected, rebooting");
         M5.Lcd.println("WiFi disconnected, rebooting");
-        delay(1000);
-        ESP.restart();
+
+        WiFi.reconnect();
       }
     }
   }
