@@ -747,7 +747,7 @@ const char index_html[] PROGMEM = R"rawliteral(
           return null
         }
 
-        return fileList;
+        return fileList.sort((a, b) => a.name.localeCompare(b.name));
       }
 
       drawFilePicker(fileList) {
@@ -790,9 +790,9 @@ const char index_html[] PROGMEM = R"rawliteral(
             }
           },
           (data) => {
-            // ignore impossible outliers
+            // ignore outliers
             data = data.filter(item => {
-              return item.intensity < 3;
+              return item.intensity < 5 && item.intensity >= 0.12;
             });
 
             this.currentData = data;
