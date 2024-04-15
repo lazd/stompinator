@@ -15,7 +15,6 @@
 #define DATAPRECISION 6
 #define SERVERUPDATEINTERVAL 225
 #define DATAPOINTSPERFRAME 6
-#define MAXFILES 14
 
 class WebServer {
 private:
@@ -103,7 +102,7 @@ public:
 
     File root = SD.open("/");
     uint fileCount = 0;
-    while (fileCount < MAXFILES) {
+    while (fileCount < MAXFILES * 2) {
       File entry = root.openNextFile();
 
       if (!entry) {

@@ -45,6 +45,7 @@ private:
     if (!this->logFile || this->logYear != year() || this->logMonth != month() || this->logDay != day()) {
       if (this->logFile) {
         this->logFile.close();
+        this->cleanLogFiles();
       }
 
       char fileName[DATESTRINGLENGTH + TIMESTRINGLENGTH + 1 + 8];
@@ -151,6 +152,8 @@ public:
     if (SD.begin()) {
       this->loggingEnabled = true;
 
+      this->cleanLogFiles();
+
       File sessionFile = SD.open("/sessions.csv", FILE_APPEND);
       if (sessionFile) {
         sessionFile.printf("%02d-%02d-%02d %02d:%02d:%02d\n", year(), month(), day(), hour(), minute(), second());
@@ -166,6 +169,80 @@ public:
     if (!this->loggingEnabled) {
       M5.Lcd.println("Watcher logging disabled");
       Serial.println("Watcher logging disabled");
+    }
+  }
+
+  void cleanLogFiles() {
+    Serial.println("Cleaning up log files...");
+    File root = SD.open("/");
+
+    if (root) {
+      // Create the "old" folder if it doesn't exist
+      if (!SD.exists("/old")) {
+        SD.mkdir("/old");
+      }
+
+      // Get current date
+      time_t curTime = now();
+
+      uint movedFiles = 0;
+      uint keptFiles = 0;
+
+      while (true) {
+        File entry = root.openNextFile();
+        if (!entry) {
+          break;
+        }
+
+        if (!entry.isDirectory()) {
+          String filename = entry.name();
+          if (filename.startsWith(".")) {
+            // Delete OS-created hidden files
+            SD.remove("/" + filename);
+          }
+          else if (filename.startsWith("log")) {
+            // Parse filename to extract date
+            int dashIndex = filename.indexOf('-');
+            int year = filename.substring(dashIndex + 1, dashIndex + 5).toInt();
+            int month = filename.substring(dashIndex + 6, dashIndex + 8).toInt();
+            int day = filename.substring(dashIndex + 9, dashIndex + 11).toInt();
+
+            // Calculate file date
+            tmElements_t fileTime;
+            fileTime.Year = CalendarYrToTm(year);
+            fileTime.Month = month;
+            fileTime.Day = day;
+            fileTime.Hour = 0;
+            fileTime.Minute = 0;
+            fileTime.Second = 0;
+            time_t fileDate = makeTime(fileTime);
+
+            // Calculate difference in days
+            int daysDifference = (curTime - fileDate) / SECS_PER_DAY;
+
+            // If file is older than MAXFILES days, move it
+            if (daysDifference >= MAXFILES) {
+              SD.rename("/" + filename, "/old/" + filename);
+              movedFiles++;
+            }
+            else {
+              keptFiles++;
+            }
+          }
+        }
+
+        entry.close();
+      }
+
+      // Close root directory
+      root.close();
+
+      Serial.print("Moved ");
+      Serial.print(movedFiles);
+      Serial.print(", kept ");
+      Serial.println(keptFiles);
+    } else {
+      Serial.println("Error opening directory");
     }
   }
 

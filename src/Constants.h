@@ -31,6 +31,7 @@
 #define INITIALWAKETIME 20 * 1000  // 20 seconds
 #define EVENTTIMEOUT 3 * 1000  // 3 seconds
 #define REWINDSTEPS 240 // ~2 seconds
+#define MAXFILES 14
 
 struct InstanceInfo {
   time_t startTime;
