@@ -387,9 +387,9 @@ const char index_html[] PROGMEM = R"rawliteral(
     </div>
   </div>
 
-  <script src="https://d3js.org/d3.v4.js"></script>
+  <script src="https://d3js.org/d3.v7.js"></script>
   <script>
-    function fetch(url, method = "GET") {
+    function request(url, method = "GET") {
       return new Promise((resolve, reject) => {
         const req = new XMLHttpRequest();
         req.timeout = 5000;
@@ -661,6 +661,8 @@ const char index_html[] PROGMEM = R"rawliteral(
     class Browser {
       HEADERLENGTH = 24;
       CONTENTLENGTH = 26;
+      MAXINTENSITY = 8;
+      MININTENSITY = 0.12;
       server = window.location.hostname;
       currentFile = null;
       currentData = null;
@@ -698,7 +700,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         window.addEventListener('delete', () => {
           if (confirm(`Are you sure you want to delete ${this.currentFile}?`)) {
             const url = `${this.server}data/${this.currentFile}`;
-            fetch(url, 'DELETE');
+            request(url, 'DELETE');
           }
         });
 
@@ -722,7 +724,7 @@ const char index_html[] PROGMEM = R"rawliteral(
           if (fileList.length) {
             const file = fileList[fileList.length - 1];
             if (file.size < 1024 * 1024) {
-              this.fetchData(file.name);
+              await this.fetchData(file.name);
             }
           }
         }
@@ -731,7 +733,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       async fetchFileList() {
         let response;
         try {
-          response = await fetch(this.server + 'data.json');
+          response = await request(this.server + 'data.json');
         }
         catch (err) {
           console.error(`Failed to fetch file list: ${err}`);
@@ -766,7 +768,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         return `${(d % 12) || 12}${amPm}`;
       }
 
-      fetchData(fileName) {
+      async fetchData(fileName) {
         if (!fileName) {
           return;
         }
@@ -779,7 +781,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         this.downloadButton.setAttribute('download', fileName);
         this.picker.value = fileName;
 
-        d3.csv(
+        let data = await d3.csv(
           url,
           (d) => {
             return {
@@ -788,18 +790,17 @@ const char index_html[] PROGMEM = R"rawliteral(
               intensity: d.intensity,
               duration: d.duration
             }
-          },
-          (data) => {
-            // ignore outliers
-            data = data.filter(item => {
-              return item.intensity < 5 && item.intensity >= 0.12;
-            });
-
-            this.currentData = data;
-
-            this.drawGraph();
           }
         );
+
+        // ignore outliers
+        data = data.filter(item => {
+          return item.intensity < this.MAXINTENSITY && item.intensity >= this.MININTENSITY;
+        });
+
+        this.currentData = data;
+
+        this.drawGraph();
       }
 
       drawGraph() {
@@ -854,7 +855,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         });
 
         const data = Object.values(hours);
-        data.columns = Object.keys(data[0]);
+        data.columns = ['hour', 'low', 'med', 'high'];
 
         const maxSteps = data.reduce((p, c) => {
           const total = c.low + c.med + c.high;
@@ -916,31 +917,37 @@ const char index_html[] PROGMEM = R"rawliteral(
           .attr('height', function (d) { return y(d[0]) - y(d[1]); })
           .attr('width', x.bandwidth());
 
-        // Hide ticks if necessary
-        const ticks = document.querySelectorAll('.graphAxis-x .tick');
-        const tickPadding = 8;
-        let largestTick = 0;
-        ticks.forEach(tick => {
-          const rect = tick.getBoundingClientRect();
-          largestTick = rect.width > largestTick ? rect.width : largestTick
-        });
+        // Hide ticks if necessary, after render
+        const hideTicks = () => {
+          const ticks = document.querySelectorAll('.graphAxis-x .tick');
+          const tickPadding = 8;
+          let largestTick = 0;
+          ticks.forEach(tick => {
+            const rect = tick.getBoundingClientRect();
+            largestTick = rect.width > largestTick ? rect.width : largestTick
+          });
 
-        if (ticks.length) {
-          let lastRect = ticks[0].getBoundingClientRect();
-          for (let tick of Array.prototype.slice.call(ticks, 1)) {
-            const currentRect = tick.getBoundingClientRect();
-            const lastTickCenter = lastRect.right - (lastRect.right - lastRect.left) / 2;
-            const curTickCenter = currentRect.right - (currentRect.right - currentRect.left) / 2;
-            const overlap = (lastTickCenter + largestTick) > curTickCenter;
-            if (overlap) {
-              const text = tick.querySelector('text');
-              text.style.display = 'none';
-            }
-            else {
-              lastRect = currentRect;
+          if (ticks.length) {
+            let lastRect = ticks[0].getBoundingClientRect();
+            for (let tick of Array.prototype.slice.call(ticks, 1)) {
+              const currentRect = tick.getBoundingClientRect();
+              const lastTickCenter = lastRect.right - (lastRect.right - lastRect.left) / 2;
+              const curTickCenter = currentRect.right - (currentRect.right - currentRect.left) / 2;
+              const overlap = (lastTickCenter + largestTick) > curTickCenter;
+              if (overlap) {
+                const text = tick.querySelector('text');
+                text.style.display = 'none';
+              }
+              else {
+                lastRect = currentRect;
+              }
             }
           }
-        }
+        };
+
+        hideTicks();
+        setTimeout(hideTicks, 0);
+        setTimeout(hideTicks, 250);
       }
     }
 
